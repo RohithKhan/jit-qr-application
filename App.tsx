@@ -1,20 +1,17 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
+
+import RootNavigator from './src/navigation/RootNavigator';
+import { navigationRef } from './src/services/api';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style="auto" />
-    </View>
+      <RootNavigator />
+      <Toast />
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
