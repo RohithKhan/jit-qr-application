@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { COLORS } from '../../constants/config';
+import { COLORS, CDN_URL } from '../../constants/config';
 
 const YearInchargeDashboardScreen = () => {
     const navigation = useNavigation<any>();
@@ -33,13 +33,21 @@ const YearInchargeDashboardScreen = () => {
         ]);
     };
 
+    const getPhoto = () => {
+        if (!yi?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(yi?.name || 'YI')}&background=7c3aed&color=fff&size=200`;
+        return yi.photo.startsWith('http') ? yi.photo : `${CDN_URL}${yi.photo}`;
+    };
+
     if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={'#7c3aed'} style={{ flex: 1 }} /></SafeAreaView>;
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>👨‍💼 Year Incharge Portal</Text>
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    {yi && <Image source={{ uri: getPhoto() }} style={styles.avatar} />}
+                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+                </View>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.hero}>
@@ -72,6 +80,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#7c3aed', paddingHorizontal: 16, paddingVertical: 14 },
     headerTitle: { color: COLORS.white, fontSize: 17, fontWeight: '800' },
+    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
     logoutBtn: { backgroundColor: COLORS.danger, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     logoutText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
     hero: { backgroundColor: '#7c3aed', paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4 },

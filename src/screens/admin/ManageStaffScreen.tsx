@@ -105,4 +105,4 @@ export const ManageSecurityScreen = () => <AdminManageScreen title="Security / W
 export const ManageBusScreen = () => <AdminManageScreen title="Bus Routes" endpoint="/api/bus/routes" fields={['routeNumber', 'name']} />;
 export const OutpassAdminScreen = () => <AdminManageScreen title="All Outpasses" endpoint="/admin/outpasses" fields={['reason', 'status']} />;
 
-export default AdminManageScreen;
+export default ManageStaffScreen;

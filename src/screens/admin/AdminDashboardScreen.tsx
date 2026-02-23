@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import {
+    View, Text, ScrollView, TouchableOpacity, StyleSheet,
+    SafeAreaView, Image, ActivityIndicator, Alert,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { COLORS } from '../../constants/config';
+import { COLORS, CDN_URL } from '../../constants/config';
 
 const AdminDashboardScreen = () => {
     const navigation = useNavigation<any>();
@@ -38,7 +41,14 @@ const AdminDashboardScreen = () => {
         ]);
     };
 
+    const getPhoto = () => {
+        if (!admin?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(admin?.name || 'Admin')}&background=1e293b&color=fff&size=200`;
+        return admin.photo.startsWith('http') ? admin.photo : `${CDN_URL}${admin.photo}`;
+    };
+
     const actions = [
+        { emoji: '📋', label: 'Manage Students', route: 'ManageStudents' },
+        { emoji: '📝', label: 'Register Student', route: 'StudentRegistration' },
         { emoji: '👥', label: 'Manage Staff', route: 'ManageStaff' },
         { emoji: '🏠', label: 'Manage Warden', route: 'ManageWarden' },
         { emoji: '👨‍💼', label: 'Year Incharge', route: 'ManageYearIncharge' },
@@ -54,7 +64,10 @@ const AdminDashboardScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>⚙️ Admin Portal</Text>
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    {admin && <Image source={{ uri: getPhoto() }} style={styles.avatar} />}
+                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+                </View>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.hero}>
@@ -96,6 +109,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', paddingHorizontal: 16, paddingVertical: 14 },
     headerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
+    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
     logoutBtn: { backgroundColor: COLORS.danger, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     logoutText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
     hero: { backgroundColor: '#1e293b', paddingHorizontal: 20, paddingBottom: 24, paddingTop: 4 },

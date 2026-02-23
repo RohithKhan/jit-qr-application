@@ -1,8 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setNavigationRef } from '../services/api';
 
 import AuthStack from './AuthStack';
 import StudentStack from './StudentStack';
@@ -18,7 +16,6 @@ const RootNavigator = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [userType, setUserType] = useState<string | null>(null);
     const [loggedIn, setLoggedIn] = useState(false);
-    const navigationRef = useRef<any>(null);
 
     useEffect(() => {
         checkAuth();
@@ -34,35 +31,16 @@ const RootNavigator = () => {
 
     if (isLoading) return null;
 
-    const getAppStack = () => {
-        if (!loggedIn) return <RootStack.Screen name="Auth" component={AuthStack} />;
-        switch (userType) {
-            case 'staff': return <RootStack.Screen name="Staff" component={StaffStack} />;
-            case 'warden': return <RootStack.Screen name="Warden" component={WardenStack} />;
-            case 'watchman': return <RootStack.Screen name="Watchman" component={WatchmanStack} />;
-            case 'year_incharge': return <RootStack.Screen name="YearIncharge" component={YearInchargeStack} />;
-            case 'admin': return <RootStack.Screen name="Admin" component={AdminStack} />;
-            default: return <RootStack.Screen name="Student" component={StudentStack} />;
-        }
-    };
-
     return (
-        <NavigationContainer
-            ref={(ref) => {
-                navigationRef.current = ref;
-                setNavigationRef(ref);
-            }}
-        >
-            <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                <RootStack.Screen name="Auth" component={AuthStack} />
-                <RootStack.Screen name="Student" component={StudentStack} />
-                <RootStack.Screen name="Staff" component={StaffStack} />
-                <RootStack.Screen name="Warden" component={WardenStack} />
-                <RootStack.Screen name="Watchman" component={WatchmanStack} />
-                <RootStack.Screen name="YearIncharge" component={YearInchargeStack} />
-                <RootStack.Screen name="Admin" component={AdminStack} />
-            </RootStack.Navigator>
-        </NavigationContainer>
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            <RootStack.Screen name="Auth" component={AuthStack} />
+            <RootStack.Screen name="Student" component={StudentStack} />
+            <RootStack.Screen name="Staff" component={StaffStack} />
+            <RootStack.Screen name="Warden" component={WardenStack} />
+            <RootStack.Screen name="Watchman" component={WatchmanStack} />
+            <RootStack.Screen name="YearIncharge" component={YearInchargeStack} />
+            <RootStack.Screen name="Admin" component={AdminStack} />
+        </RootStack.Navigator>
     );
 };
 
