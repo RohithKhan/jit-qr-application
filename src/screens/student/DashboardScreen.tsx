@@ -8,8 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { User } from '../../types';
-import { COLORS, CDN_URL } from '../../constants/config';
+import { COLORS, CDN_URL, SHADOWS } from '../../constants/config';
 import { isProfileComplete } from '../../utils/profileHelper';
+import { handleGlobalLogout } from '../../utils/authHelper';
 
 const DashboardScreen = () => {
     const navigation = useNavigation<any>();
@@ -37,17 +38,7 @@ const DashboardScreen = () => {
         }
     };
 
-    const handleLogout = async () => {
-        Alert.alert('Logout', 'Are you sure you want to logout?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout', style: 'destructive', onPress: async () => {
-                    await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
-            }
-        ]);
-    };
+    const handleLogout = handleGlobalLogout;
 
     const handleQuickAction = (route: string) => {
         const restricted = ['Staffs', 'SubjectsTab', 'OutpassTab'];
@@ -159,49 +150,55 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     header: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 14,
+        backgroundColor: COLORS.primaryDark, paddingHorizontal: 20, paddingVertical: 18,
+        borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)'
     },
-    headerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    headerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
-    logoutBtn: { backgroundColor: COLORS.danger, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    logoutText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
+    headerTitle: { color: COLORS.white, fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: COLORS.white },
+    logoutBtn: { backgroundColor: 'rgba(239, 68, 68, 0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)' },
+    logoutText: { color: COLORS.danger, fontSize: 13, fontWeight: '700' },
     scroll: { flex: 1 },
     hero: {
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4,
+        backgroundColor: COLORS.primaryDark,
+        paddingHorizontal: 20, paddingBottom: 32, paddingTop: 10,
+        borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+        ...SHADOWS.small,
     },
     welcomeBadge: {
-        backgroundColor: 'rgba(255,255,255,0.15)', color: COLORS.white,
-        paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
-        fontSize: 12, fontWeight: '600', alignSelf: 'flex-start', marginBottom: 8,
+        backgroundColor: COLORS.surfaceLight, color: COLORS.white,
+        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+        fontSize: 12, fontWeight: '600', alignSelf: 'flex-start', marginBottom: 10,
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     },
-    heroName: { color: COLORS.white, fontSize: 26, fontWeight: '800', marginBottom: 4 },
-    heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 14 },
+    heroName: { color: COLORS.white, fontSize: 26, fontWeight: '800', marginBottom: 6, letterSpacing: -0.5 },
+    heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '500' },
     section: { paddingHorizontal: 16, paddingTop: 20 },
     sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
     actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     actionCard: {
-        width: '47%', backgroundColor: COLORS.white, borderRadius: 16,
-        padding: 20, alignItems: 'center', justifyContent: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+        width: '48%', backgroundColor: COLORS.white, borderRadius: 20,
+        padding: 22, alignItems: 'center', justifyContent: 'center',
+        ...SHADOWS.medium,
+        borderWidth: 1, borderColor: COLORS.border,
     },
-    actionIcon: { fontSize: 32, marginBottom: 8 },
-    actionLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
+    actionIcon: { fontSize: 36, marginBottom: 12 },
+    actionLabel: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
     card: {
-        backgroundColor: COLORS.white, borderRadius: 16, padding: 18,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+        backgroundColor: COLORS.white, borderRadius: 20, padding: 22,
+        ...SHADOWS.medium, borderWidth: 1, borderColor: COLORS.border,
     },
-    cardTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
-    infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    infoItem: { width: '47%' },
-    infoLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', marginBottom: 2 },
-    infoValue: { fontSize: 14, color: COLORS.textPrimary, fontWeight: '700' },
+    cardTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 18, letterSpacing: -0.3 },
+    infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+    infoItem: { width: '46%' },
+    infoLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+    infoValue: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '700' },
     visionCard: {
-        backgroundColor: COLORS.primaryDark, borderRadius: 16, padding: 20, marginBottom: 24,
+        backgroundColor: COLORS.primaryDark, borderRadius: 20, padding: 24, marginBottom: 32,
+        ...SHADOWS.large,
     },
-    visionTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700', marginBottom: 12 },
-    visionText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 22 },
+    visionTitle: { color: COLORS.white, fontSize: 17, fontWeight: '800', marginBottom: 14, letterSpacing: -0.3 },
+    visionText: { color: 'rgba(255,255,255,0.85)', fontSize: 15, lineHeight: 24 },
 });
 
 export default DashboardScreen;

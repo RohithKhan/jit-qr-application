@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { COLORS } from '../../constants/config';
+import { COLORS, SHADOWS } from '../../constants/config';
 
 const WardenLoginScreen = () => {
     const navigation = useNavigation<any>();
@@ -77,16 +77,16 @@ const styles = StyleSheet.create({
     scroll: { flexGrow: 1, padding: 20, justifyContent: 'center' },
     backBtn: { marginBottom: 16 },
     backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15, fontWeight: '600' },
-    card: { backgroundColor: COLORS.white, borderRadius: 24, padding: 28, elevation: 15 },
+    card: { backgroundColor: COLORS.white, borderRadius: 24, padding: 28, ...SHADOWS.large },
     emoji: { fontSize: 48, textAlign: 'center', marginBottom: 12 },
     title: { fontSize: 24, fontWeight: '800', color: '#1a6b4a', textAlign: 'center', marginBottom: 6 },
     subtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 },
     inputGroup: { marginBottom: 18 },
     label: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 },
-    input: { backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border },
+    input: { backgroundColor: COLORS.background, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: COLORS.textPrimary, borderWidth: 1, borderColor: COLORS.border, ...SHADOWS.small, shadowOpacity: 0.02 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     eyeBtn: { padding: 12 },
-    btn: { backgroundColor: '#1a6b4a', paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 8 },
+    btn: { backgroundColor: '#1a6b4a', paddingVertical: 16, borderRadius: 16, alignItems: 'center', marginTop: 12, ...SHADOWS.medium },
     btnDisabled: { opacity: 0.7 },
     btnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
 });

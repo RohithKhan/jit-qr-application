@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { COLORS } from '../../constants/config';
+import { COLORS, SHADOWS } from '../../constants/config';
 
 interface Props {
     route?: { params?: { initialType?: 'student' | 'staff' } };
@@ -141,11 +141,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         borderRadius: 24,
         padding: 28,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.3,
-        shadowRadius: 40,
-        elevation: 15,
+        ...SHADOWS.large,
     },
     logoEmoji: { fontSize: 48, textAlign: 'center', marginBottom: 12 },
     title: { fontSize: 24, fontWeight: '800', color: COLORS.primaryDark, textAlign: 'center', marginBottom: 6 },
@@ -164,14 +160,16 @@ const styles = StyleSheet.create({
     inputGroup: { marginBottom: 18 },
     label: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 },
     input: {
-        backgroundColor: '#f8fafc',
-        borderRadius: 12,
+        backgroundColor: COLORS.background,
+        borderRadius: 14,
         paddingHorizontal: 16,
         paddingVertical: 14,
         fontSize: 15,
         color: COLORS.textPrimary,
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: COLORS.border,
+        ...SHADOWS.small,
+        shadowOpacity: 0.02,
     },
     passwordRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     eyeBtn: { padding: 12 },
@@ -179,9 +177,10 @@ const styles = StyleSheet.create({
     btn: {
         backgroundColor: COLORS.primary,
         paddingVertical: 16,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: 12,
+        ...SHADOWS.medium,
     },
     btnDisabled: { opacity: 0.7 },
     btnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },

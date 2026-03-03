@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { COLORS, CDN_URL } from '../../constants/config';
+import { handleGlobalLogout } from '../../utils/authHelper';
 
 const WatchmanDashboardScreen = () => {
     const navigation = useNavigation<any>();
@@ -21,17 +22,7 @@ const WatchmanDashboardScreen = () => {
         finally { setLoading(false); }
     };
 
-    const handleLogout = async () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout', style: 'destructive', onPress: async () => {
-                    await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
-            }
-        ]);
-    };
+    const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
         if (!watchman?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(watchman?.name || 'Watchman')}&background=4a3728&color=fff&size=200`;

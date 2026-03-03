@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { StaffUser } from '../../types';
 import { COLORS, CDN_URL } from '../../constants/config';
+import { handleGlobalLogout } from '../../utils/authHelper';
 
 const StaffProfileScreen = () => {
     const navigation = useNavigation<any>();
@@ -59,17 +60,7 @@ const StaffProfileScreen = () => {
         return staff.photo.startsWith('http') ? staff.photo : `${CDN_URL}${staff.photo}`;
     };
 
-    const handleLogout = async () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout', style: 'destructive', onPress: async () => {
-                    await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
-            }
-        ]);
-    };
+    const handleLogout = handleGlobalLogout;
 
     if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /></SafeAreaView>;
 

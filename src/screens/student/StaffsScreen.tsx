@@ -26,9 +26,10 @@ const StaffsScreen = () => {
 
     const fetchStaffs = async () => {
         try {
-            const res = await api.get('/staff/all');
-            setStaffs(res.data.staffs || res.data || []);
-            setFiltered(res.data.staffs || res.data || []);
+            const res = await api.get('/api/staff/list');
+            const staffList = res.data.staff || res.data.staffs || (Array.isArray(res.data) ? res.data : []);
+            setStaffs(staffList);
+            setFiltered(staffList);
         } catch { Toast.show({ type: 'error', text1: 'Failed to fetch staffs' }); }
         finally { setLoading(false); }
     };
@@ -67,6 +68,7 @@ const StaffsScreen = () => {
                             <Text style={styles.arrow}>›</Text>
                         </TouchableOpacity>
                     )}
+
                 />
             }
         </SafeAreaView>

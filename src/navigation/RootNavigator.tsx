@@ -22,17 +22,35 @@ const RootNavigator = () => {
     }, []);
 
     const checkAuth = async () => {
-        const logged = await AsyncStorage.getItem('isLoggedIn');
-        const type = await AsyncStorage.getItem('userType');
-        setLoggedIn(logged === 'true');
-        setUserType(type);
-        setIsLoading(false);
+        try {
+            const logged = await AsyncStorage.getItem('isLoggedIn');
+            const type = await AsyncStorage.getItem('userType');
+            setLoggedIn(logged === 'true');
+            setUserType(type);
+        } catch (error) {
+            console.error('Auth check error:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (isLoading) return null;
 
+    const getInitialRoute = () => {
+        if (!loggedIn || !userType) return 'Auth';
+        switch (userType) {
+            case 'admin': return 'Admin';
+            case 'student': return 'Student';
+            case 'staff': return 'Staff';
+            case 'warden': return 'Warden';
+            case 'watchman': return 'Watchman';
+            case 'year-incharge': return 'YearIncharge';
+            default: return 'Auth';
+        }
+    };
+
     return (
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={getInitialRoute()}>
             <RootStack.Screen name="Auth" component={AuthStack} />
             <RootStack.Screen name="Student" component={StudentStack} />
             <RootStack.Screen name="Staff" component={StaffStack} />

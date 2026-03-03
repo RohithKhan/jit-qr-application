@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { COLORS, CDN_URL } from '../../constants/config';
+import { handleGlobalLogout } from '../../utils/authHelper';
 
 interface Props { endpoint: string; updateEndpoint: string; color: string; title: string; logoutRoute: string; }
 
@@ -51,17 +52,7 @@ const ProfileBase = ({ endpoint, updateEndpoint, color, title, logoutRoute }: Pr
         finally { setSaving(false); }
     };
 
-    const handleLogout = async () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout', style: 'destructive', onPress: async () => {
-                    await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
-            }
-        ]);
-    };
+    const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
         if (imageUri) return imageUri;

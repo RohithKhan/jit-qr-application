@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StaffUser } from '../../types';
-import { COLORS, CDN_URL } from '../../constants/config';
+import { COLORS, CDN_URL, SHADOWS } from '../../constants/config';
 
 const StudentViewStaffProfileScreen = () => {
     const navigation = useNavigation<any>();
@@ -32,19 +32,34 @@ const StudentViewStaffProfileScreen = () => {
                 <View style={styles.card}>
                     {[
                         { label: 'Email', value: staff?.email, emoji: '📧' },
-                        { label: 'Phone', value: staff?.phone, emoji: '📱' },
-                        { label: 'Department', value: staff?.department, emoji: '🏛️' },
-                        { label: 'Designation', value: staff?.designation, emoji: '💼' },
-                    ].map(({ label, value, emoji }) => value ? (
+                        { label: 'Phone', value: staff?.phone, emoji: '📱', fallback: 'Not provided' },
+                        { label: 'Department', value: staff?.department, emoji: '🏛️', fallback: 'N/A' },
+                        { label: 'Designation', value: staff?.designation, emoji: '💼', fallback: 'Faculty' },
+                        { label: 'Gender', value: staff?.gender, emoji: '👤' }
+                    ].map(({ label, value, emoji, fallback }) => (value || fallback) ? (
                         <View key={label} style={styles.infoRow}>
                             <Text style={styles.infoEmoji}>{emoji}</Text>
                             <View>
                                 <Text style={styles.infoLabel}>{label}</Text>
-                                <Text style={styles.infoValue}>{value}</Text>
+                                <Text style={styles.infoValue}>{value || fallback}</Text>
                             </View>
                         </View>
                     ) : null)}
                 </View>
+
+                {/* Optional Subjects Section if available in real API data */}
+                {(staff as any)?.subjects && (staff as any).subjects.length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>📚 Subjects Handled</Text>
+                        <View style={styles.tagsContainer}>
+                            {(staff as any).subjects.map((sub: string, i: number) => (
+                                <View key={i} style={styles.tag}>
+                                    <Text style={styles.tagText}>{sub}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -52,21 +67,25 @@ const StudentViewStaffProfileScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    header: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primaryDark, paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)', gap: 12 },
     backBtn: { padding: 4 },
-    backText: { color: COLORS.primary, fontWeight: '700', fontSize: 15 },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-    hero: { backgroundColor: COLORS.primary, padding: 28, alignItems: 'center', paddingBottom: 36 },
-    avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', marginBottom: 16 },
-    name: { color: COLORS.white, fontSize: 22, fontWeight: '800', marginBottom: 4 },
-    designation: { color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 12 },
-    badge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+    backText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
+    headerTitle: { fontSize: 19, fontWeight: '800', color: COLORS.white, letterSpacing: -0.3 },
+    hero: { backgroundColor: COLORS.primaryDark, padding: 28, alignItems: 'center', paddingBottom: 36, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, ...SHADOWS.small },
+    avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: COLORS.white, marginBottom: 16, ...SHADOWS.medium },
+    name: { color: COLORS.white, fontSize: 24, fontWeight: '800', marginBottom: 6, letterSpacing: -0.5 },
+    designation: { color: 'rgba(255,255,255,0.85)', fontSize: 15, marginBottom: 14, fontWeight: '500' },
+    badge: { backgroundColor: COLORS.surfaceLight, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     badgeText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
-    card: { backgroundColor: COLORS.white, margin: 16, borderRadius: 16, padding: 20, elevation: 2 },
-    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    infoEmoji: { fontSize: 22, width: 32 },
-    infoLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', marginBottom: 2 },
+    card: { backgroundColor: COLORS.white, margin: 16, borderRadius: 20, padding: 22, ...SHADOWS.medium, borderWidth: 1, borderColor: COLORS.border },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16, letterSpacing: -0.3 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    infoEmoji: { fontSize: 24, width: 32, textAlign: 'center' },
+    infoLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
     infoValue: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '700' },
+    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    tag: { backgroundColor: COLORS.primaryLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(65, 105, 225, 0.2)' },
+    tagText: { color: COLORS.primaryDark, fontSize: 13, fontWeight: '700' },
 });
 
 export default StudentViewStaffProfileScreen;

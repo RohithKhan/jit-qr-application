@@ -4,7 +4,7 @@ import {
     SafeAreaView, StatusBar, ImageBackground,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS } from '../../constants/config';
+import { COLORS, SHADOWS } from '../../constants/config';
 
 const WelcomeScreen = () => {
     const navigation = useNavigation<any>();
@@ -70,13 +70,16 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     logoContainer: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        width: 100,
+        height: 100,
+        borderRadius: 30,
+        backgroundColor: COLORS.surfaceLight,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: COLORS.surfaceLighter,
+        ...SHADOWS.medium,
     },
     logoIcon: { fontSize: 44 },
     title: {
@@ -97,12 +100,15 @@ const styles = StyleSheet.create({
     statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 16,
-        paddingVertical: 16,
+        backgroundColor: COLORS.surfaceLight,
+        borderRadius: 20,
+        paddingVertical: 18,
         paddingHorizontal: 20,
-        marginBottom: 36,
+        marginBottom: 40,
         width: '100%',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        ...SHADOWS.small,
     },
     stat: { flex: 1, alignItems: 'center' },
     statValue: { fontSize: 20, fontWeight: '800', color: COLORS.white },
@@ -112,16 +118,18 @@ const styles = StyleSheet.create({
     btnPrimary: {
         backgroundColor: COLORS.white,
         paddingVertical: 16,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
+        ...SHADOWS.medium,
     },
     btnPrimaryText: { color: COLORS.primary, fontSize: 16, fontWeight: '700' },
     btnOutline: {
         borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.5)',
+        borderColor: 'rgba(255,255,255,0.4)',
         paddingVertical: 14,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
     },
     btnOutlineText: { color: COLORS.white, fontSize: 15, fontWeight: '600' },
     btnGhost: {
