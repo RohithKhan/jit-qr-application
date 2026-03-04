@@ -1,8 +1,6 @@
 import React from 'react';
-import {
-    View, Text, TouchableOpacity, StyleSheet,
-    SafeAreaView, StatusBar, ImageBackground,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, ImageBackground } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../../constants/config';
 

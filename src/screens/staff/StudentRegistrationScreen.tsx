@@ -1,8 +1,6 @@
 import React, { useState, useRef } from 'react';
-import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet,
-    SafeAreaView, ScrollView, ActivityIndicator,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';

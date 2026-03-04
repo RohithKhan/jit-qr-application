@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, FlatList, TouchableOpacity, StyleSheet,
-    SafeAreaView, ActivityIndicator, RefreshControl,
+    ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
@@ -39,7 +40,7 @@ const OutpassScreen = () => {
     }[status] || status);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>📝 My Outpass Requests</Text>
                 <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('NewOutpass')}>
@@ -55,17 +56,21 @@ const OutpassScreen = () => {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOutpasses(); }} />}
                     showsVerticalScrollIndicator={false}
                     renderItem={({ item }) => (
-                        <View style={[styles.card, item.outpassType === 'emergency' && styles.emergencyCard]}>
+                        <TouchableOpacity
+                            style={[styles.card, item.outpassType === 'emergency' && styles.emergencyCard]}
+                            activeOpacity={0.7}
+                            onPress={() => navigation.navigate('OutpassDetails', { outpass: item })}
+                        >
                             {item.outpassType === 'emergency' && <Text style={styles.emergencyBadge}>🚨 EMERGENCY</Text>}
                             <View style={styles.cardHeader}>
-                                <Text style={styles.type}>{item.outpassType || 'Regular'}</Text>
+                                <Text style={styles.type}>{item.outpassType || (item as any).outpasstype || 'Regular'}</Text>
                                 <View style={[styles.statusBadge, { backgroundColor: statusColor[item.status] || '#6b7280' }]}>
                                     <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
                                 </View>
                             </View>
                             <Text style={styles.reason}>{item.reason}</Text>
                             <Text style={styles.date}>📅 {new Date(item.fromDate).toLocaleDateString()} → {new Date(item.toDate).toLocaleDateString()}</Text>
-                        </View>
+                        </TouchableOpacity>
                     )}
                 />
             }
@@ -79,7 +84,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
     addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
     addText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
-    list: { padding: 16, gap: 12 },
+    list: { padding: 16, gap: 12, paddingBottom: 40 },
     card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6 },
     emergencyCard: { borderLeftWidth: 4, borderLeftColor: COLORS.danger },
     emergencyBadge: { fontSize: 11, fontWeight: '800', color: COLORS.danger, marginBottom: 6 },

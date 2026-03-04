@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet,
-    SafeAreaView, TextInput, ActivityIndicator, ScrollView,
+    TextInput, ActivityIndicator, ScrollView,
     Platform, UIManager, LayoutAnimation
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
@@ -79,7 +80,7 @@ const SubjectsScreen = () => {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Academic Subjects</Text>
                 <Text style={styles.headerSub}>Browse course materials by semester.</Text>

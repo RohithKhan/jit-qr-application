@@ -25,10 +25,16 @@ export interface StaffUser {
     id: string;
     email: string;
     phone?: string;
+    contactNumber?: string;
     department?: string;
     designation?: string;
+    qualification?: string;
+    experience?: string | number;
     photo?: string;
     gender?: string;
+    subjects?: string[];
+    skills?: string[];
+    achievements?: string[];
 }
 
 export interface WardenUser {
@@ -91,6 +97,21 @@ export interface StudentOutpass {
     staffApproval?: string;
     wardenApproval?: string;
     yearInchargeApproval?: string;
+
+    // Server-returned populated properties
+    staffapprovalstatus?: string;
+    yearinchargeapprovalstatus?: string;
+    wardenapprovalstatus?: string;
+    staffid?: { name: string };
+    inchargeid?: { name: string };
+    wardenid?: { name: string };
+    staffremarks?: string;
+    yearinchargeremarks?: string;
+    wardenremarks?: string;
+    document?: string;
+    proof?: string;
+    file?: string;
+
     createdAt: string;
     updatedAt?: string;
     staffComment?: string;

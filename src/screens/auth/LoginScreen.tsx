@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet,
-    SafeAreaView, StatusBar, ScrollView, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';

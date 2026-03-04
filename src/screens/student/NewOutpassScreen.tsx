@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    SafeAreaView, ScrollView, ActivityIndicator,
+    SafeAreaView, ScrollView, ActivityIndicator, Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import * as DocumentPicker from 'expo-document-picker';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { COLORS } from '../../constants/config';
@@ -12,21 +13,122 @@ import { COLORS } from '../../constants/config';
 const NewOutpassScreen = () => {
     const navigation = useNavigation<any>();
     const [reason, setReason] = useState('');
-    const [outpassType, setOutpassType] = useState('regular');
+    const [outpassType, setOutpassType] = useState('Outing');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
     const [fromTime, setFromTime] = useState('');
     const [toTime, setToTime] = useState('');
+    const [skillrack, setSkillrack] = useState('');
+    const [attendance, setAttendance] = useState('');
     const [loading, setLoading] = useState(false);
+    const [residenceType, setResidenceType] = useState('');
+    const [hasPending, setHasPending] = useState(false);
+    const [document, setDocument] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchPrerequisites = async () => {
+            try {
+                const [profileRes, outpassRes] = await Promise.all([
+                    api.get('/api/profile'),
+                    api.get('/api/outpass')
+                ]);
+
+                if (profileRes.status === 200) {
+                    const user = profileRes.data.user;
+                    const rt = user.residencetype?.toLowerCase() || '';
+                    setResidenceType(rt);
+                    if (rt === 'day scholar') setOutpassType('OD');
+
+                    // Profile Blocking Logic
+                    const isProfileComplete = () => {
+                        if (!user.name || !user.registerNumber || !user.department || !user.year ||
+                            !user.phone || !user.email || !user.parentnumber || !user.residencetype || !user.photo) {
+                            return false;
+                        }
+                        if (user.residencetype === 'hostel' && (!user.hostelname || !user.hostelroomno)) return false;
+                        if (user.residencetype === 'day scholar' && (!user.busno || !user.boardingpoint)) return false;
+                        return true;
+                    };
+
+                    if (!isProfileComplete()) {
+                        Toast.show({ type: 'error', text1: 'Profile Incomplete', text2: 'Please complete your profile first.' });
+                        navigation.goBack();
+                        return;
+                    }
+                }
+
+                if (outpassRes.status === 200) {
+                    const outpasses = outpassRes.data.outpasses || [];
+                    const pending = outpasses.find((op: any) => op.status === 'pending');
+                    if (pending) {
+                        setHasPending(true);
+                        Toast.show({ type: 'info', text1: 'Pending Application', text2: 'You already have a pending outpass.' });
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch prerequisites for outpass', err);
+            }
+        };
+        fetchPrerequisites();
+    }, []);
+
+    const pickDocument = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: 'application/pdf',
+                copyToCacheDirectory: true
+            });
+            if (result.canceled === false) {
+                const file = result.assets[0];
+                if (file.size && file.size > 200 * 1024) {
+                    Toast.show({ type: 'error', text1: 'File too large', text2: 'PDF must be under 200KB.' });
+                    return;
+                }
+                setDocument(file);
+            }
+        } catch (err) {
+            Toast.show({ type: 'error', text1: 'File picking failed' });
+        }
+    };
 
     const handleSubmit = async () => {
         if (!reason || !fromDate || !toDate) {
             Toast.show({ type: 'error', text1: 'Please fill all required fields' });
             return;
         }
+        if (outpassType === 'OD' && !document) {
+            Toast.show({ type: 'error', text1: 'Document Required', text2: 'Please upload a PDF proof for OD.' });
+            return;
+        }
+
         setLoading(true);
         try {
-            await api.post('/api/outpass', { reason, outpassType, fromDate, toDate, fromTime, toTime });
+            const formData = new FormData();
+            formData.append('outpasstype', outpassType);
+            formData.append('fromDate', `${fromDate}T${fromTime || '00:00'}`);
+            formData.append('toDate', `${toDate}T${toTime || '00:00'}`);
+            formData.append('reason', reason);
+            formData.append('skillrack', skillrack);
+            formData.append('attendance', attendance);
+
+            if (outpassType === 'OD' && document) {
+                if (Platform.OS === 'web') {
+                    const res = await fetch(document.uri);
+                    const blob = await res.blob();
+                    formData.append('file', blob, document.name || 'document.pdf');
+                } else {
+                    formData.append('file', {
+                        uri: document.uri,
+                        type: document.mimeType || 'application/pdf',
+                        name: document.name || 'document.pdf'
+                    } as any);
+                }
+            }
+
+            await api.post('/api/outpass/apply', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             Toast.show({ type: 'success', text1: 'Outpass submitted successfully!' });
             navigation.goBack();
         } catch (err: any) {
@@ -47,10 +149,20 @@ const NewOutpassScreen = () => {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Outpass Type *</Text>
                         <View style={styles.pickerWrap}>
-                            <Picker selectedValue={outpassType} onValueChange={setOutpassType}>
-                                <Picker.Item label="Regular" value="regular" />
-                                <Picker.Item label="Emergency" value="emergency" />
-                                <Picker.Item label="Medical" value="medical" />
+                            <Picker style={styles.picker} selectedValue={outpassType} onValueChange={setOutpassType}>
+                                {residenceType === 'day scholar' ? (
+                                    <>
+                                        <Picker.Item label="On Duty (OD)" value="OD" />
+                                        <Picker.Item label="Emergency" value="Emergency" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Picker.Item label="Outing (Town Pass)" value="Outing" />
+                                        <Picker.Item label="Home Pass" value="Home" />
+                                        <Picker.Item label="On Duty (OD)" value="OD" />
+                                        <Picker.Item label="Emergency" value="Emergency" />
+                                    </>
+                                )}
                             </Picker>
                         </View>
                     </View>
@@ -65,8 +177,29 @@ const NewOutpassScreen = () => {
                             placeholderTextColor={COLORS.textLight}
                             multiline
                             numberOfLines={4}
+                            maxLength={250}
                         />
                     </View>
+
+                    <View style={styles.row}>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>SkillRack Solved</Text>
+                            <TextInput style={styles.input} value={skillrack} onChangeText={setSkillrack} placeholder="0" keyboardType="numeric" placeholderTextColor={COLORS.textLight} />
+                        </View>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>Attendance %</Text>
+                            <TextInput style={styles.input} value={attendance} onChangeText={setAttendance} placeholder="85" keyboardType="numeric" placeholderTextColor={COLORS.textLight} />
+                        </View>
+                    </View>
+
+                    {outpassType === 'OD' && (
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Upload Supporting Document (PDF) *</Text>
+                            <TouchableOpacity style={styles.uploadBtn} onPress={pickDocument}>
+                                <Text style={styles.uploadBtnText}>{document ? document.name : 'Select PDF File'}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     <View style={styles.row}>
                         <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -90,8 +223,14 @@ const NewOutpassScreen = () => {
                         </View>
                     </View>
 
-                    <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleSubmit} disabled={loading}>
-                        {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.btnText}>Submit Outpass Request</Text>}
+                    {hasPending && (
+                        <View style={styles.warningBox}>
+                            <Text style={styles.warningText}>⚠️ You already have a pending outpass application. You must wait for it to be approved or rejected before applying for a new one.</Text>
+                        </View>
+                    )}
+
+                    <TouchableOpacity style={[styles.btn, (loading || hasPending) && styles.btnDisabled]} onPress={handleSubmit} disabled={loading || hasPending}>
+                        {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.btnText}>{hasPending ? 'Pending Application Exists' : 'Submit Application'}</Text>}
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -112,10 +251,15 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border },
     textarea: { height: 100, textAlignVertical: 'top' },
     pickerWrap: { backgroundColor: '#f8fafc', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, overflow: 'hidden' },
+    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, border: 'none', outline: 'none', backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
     row: { flexDirection: 'row', gap: 10 },
     btn: { backgroundColor: COLORS.primary, paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginTop: 8 },
     btnDisabled: { opacity: 0.65 },
     btnText: { color: COLORS.white, fontWeight: '700', fontSize: 16 },
+    uploadBtn: { backgroundColor: COLORS.white, paddingVertical: 14, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.primary, alignItems: 'center', borderStyle: 'dashed' },
+    uploadBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
+    warningBox: { backgroundColor: '#fff3cd', borderColor: '#ffeeba', borderWidth: 1, padding: 12, borderRadius: 10, marginBottom: 16 },
+    warningText: { color: '#856404', fontSize: 13, lineHeight: 18, fontWeight: '500' },
 });
 
 export default NewOutpassScreen;

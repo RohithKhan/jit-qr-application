@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View, Text, ScrollView, TouchableOpacity, StyleSheet,
-    SafeAreaView, Image, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { COLORS, CDN_URL } from '../../constants/config';
+import { handleGlobalLogout } from '../../utils/authHelper';
 
 const AdminDashboardScreen = () => {
     const navigation = useNavigation<any>();
@@ -29,17 +28,7 @@ const AdminDashboardScreen = () => {
         finally { setLoading(false); }
     };
 
-    const handleLogout = async () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout', style: 'destructive', onPress: async () => {
-                    await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
-            }
-        ]);
-    };
+    const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
         if (!admin?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(admin?.name || 'Admin')}&background=1e293b&color=fff&size=200`;

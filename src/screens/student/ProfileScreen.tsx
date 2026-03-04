@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    SafeAreaView, ScrollView, Image, ActivityIndicator, Alert,
+    ScrollView, Image, ActivityIndicator, Alert, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
@@ -51,14 +51,23 @@ const ProfileScreen = () => {
     };
 
     const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') { Alert.alert('Permission required', 'Gallery permission is needed.'); return; }
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
-        if (!result.canceled && result.assets[0]) {
-            const asset = result.assets[0];
-            const compressed = await ImageManipulator.manipulateAsync(asset.uri, [{ resize: { width: 800 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
-            setImageUri(compressed.uri);
-            setUser(prev => ({ ...prev, photo: compressed.uri }));
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') { Alert.alert('Permission required', 'Gallery permission is needed.'); return; }
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.8,
+                allowsEditing: true,
+                aspect: [1, 1],
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setImageUri(asset.uri);
+                setUser(prev => ({ ...prev, photo: asset.uri }));
+            }
+        } catch (error) {
+            console.error('Image picking error:', error);
+            Toast.show({ type: 'error', text1: 'Failed to open gallery' });
         }
     };
 
@@ -73,11 +82,20 @@ const ProfileScreen = () => {
                         formData.append(key, String(val));
                     }
                 });
-                formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'profile.jpg' } as any);
+
+                if (Platform.OS === 'web') {
+                    const res = await fetch(imageUri);
+                    const blob = await res.blob();
+                    formData.append('file', blob, 'profile.jpg');
+                } else {
+                    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'profile.jpg' } as any);
+                }
+
                 await api.put('/api/profile/update', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             } else {
                 await api.put('/api/profile/update', user);
             }
+            await fetchProfile();
             Toast.show({ type: 'success', text1: 'Profile updated successfully!' });
             setIsEditing(false);
             setImageUri(null);
@@ -89,20 +107,21 @@ const ProfileScreen = () => {
     const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
+        if (imageUri) return imageUri;
         if (!user.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0047AB&color=fff&size=200`;
-        if (user.photo.startsWith('http') || user.photo.startsWith('file')) return user.photo;
+        if (user.photo.startsWith('http') || user.photo.startsWith('file') || user.photo.startsWith('data:') || user.photo.startsWith('blob:')) return user.photo;
         return `${CDN_URL}${user.photo}`;
     };
 
-    if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /></SafeAreaView>;
+    if (loading) return <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}><ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /></SafeAreaView>;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Profile</Text>
                 <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
             </View>
-            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Profile Card */}
                 <View style={styles.card}>
                     <TouchableOpacity onPress={isEditing ? pickImage : undefined} style={styles.avatarContainer}>
@@ -127,10 +146,10 @@ const ProfileScreen = () => {
                     {!isEditing
                         ? <TouchableOpacity style={styles.btn} onPress={() => setIsEditing(true)}><Text style={styles.btnText}>Edit Profile</Text></TouchableOpacity>
                         : <View style={styles.actionRow}>
-                            <TouchableOpacity style={[styles.btn, saving && styles.btnDisabled]} onPress={handleSave} disabled={saving}>
+                            <TouchableOpacity style={[styles.btn, { flex: 1 }, saving && styles.btnDisabled]} onPress={handleSave} disabled={saving}>
                                 {saving ? <ActivityIndicator color={COLORS.white} size="small" /> : <Text style={styles.btnText}>Save Changes</Text>}
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.btnGhost} onPress={() => setIsEditing(false)}><Text style={styles.btnGhostText}>Cancel</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.btnGhost, { marginLeft: 0 }]} onPress={() => setIsEditing(false)}><Text style={styles.btnGhostText}>Cancel</Text></TouchableOpacity>
                         </View>
                     }
                 </View>
@@ -161,7 +180,7 @@ const ProfileScreen = () => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Gender</Text>
                             <View style={[styles.pickerWrap, !isEditing && styles.inputDisabled]}>
-                                <Picker selectedValue={user.gender} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, gender: v }))} enabled={isEditing}>
+                                <Picker style={styles.picker} selectedValue={user.gender} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, gender: v }))} enabled={isEditing}>
                                     <Picker.Item label="Male" value="male" />
                                     <Picker.Item label="Female" value="female" />
                                 </Picker>
@@ -170,7 +189,7 @@ const ProfileScreen = () => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Year</Text>
                             <View style={[styles.pickerWrap, !isEditing && styles.inputDisabled]}>
-                                <Picker selectedValue={user.year} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, year: v }))} enabled={isEditing}>
+                                <Picker style={styles.picker} selectedValue={user.year} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, year: v }))} enabled={isEditing}>
                                     <Picker.Item label="Select Year" value="" />
                                     {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => <Picker.Item key={y} label={y} value={y} />)}
                                 </Picker>
@@ -179,7 +198,7 @@ const ProfileScreen = () => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Batch</Text>
                             <View style={[styles.pickerWrap, !isEditing && styles.inputDisabled]}>
-                                <Picker selectedValue={user.batch} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, batch: v }))} enabled={isEditing}>
+                                <Picker style={styles.picker} selectedValue={user.batch} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, batch: v }))} enabled={isEditing}>
                                     <Picker.Item label="Select Batch" value="" />
                                     {['2022-2026', '2023-2027', '2024-2028', '2025-2029', '2026-2030'].map(b => <Picker.Item key={b} label={b} value={b} />)}
                                 </Picker>
@@ -195,7 +214,7 @@ const ProfileScreen = () => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Residence Type</Text>
                             <View style={[styles.pickerWrap, !isEditing && styles.inputDisabled]}>
-                                <Picker selectedValue={user.residencetype} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, residencetype: v }))} enabled={isEditing}>
+                                <Picker style={styles.picker} selectedValue={user.residencetype} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, residencetype: v }))} enabled={isEditing}>
                                     <Picker.Item label="Select Type" value="" />
                                     <Picker.Item label="Day Scholar" value="day scholar" />
                                     <Picker.Item label="Hostel" value="hostel" />
@@ -206,7 +225,7 @@ const ProfileScreen = () => {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Hostel Name</Text>
                                 <View style={[styles.pickerWrap, !isEditing && styles.inputDisabled]}>
-                                    <Picker selectedValue={user.hostelname} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, hostelname: v }))} enabled={isEditing}>
+                                    <Picker style={styles.picker} selectedValue={user.hostelname} onValueChange={(v) => isEditing && setUser(prev => ({ ...prev, hostelname: v }))} enabled={isEditing}>
                                         <Picker.Item label="Select Hostel" value="" />
                                         <Picker.Item label="M.G.R illam" value="M.G.R" />
                                         <Picker.Item label="Janaki ammal illam" value="Janaki ammal" />
@@ -262,6 +281,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
     logoutText: { color: COLORS.danger, fontWeight: '700', fontSize: 14 },
     scroll: { flex: 1 },
+    scrollContent: { paddingBottom: 40 },
     card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 18, marginHorizontal: 16, marginTop: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6 },
     avatarContainer: { alignSelf: 'center', marginBottom: 12, position: 'relative' },
     avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: COLORS.primary },
@@ -290,6 +310,7 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border },
     inputDisabled: { backgroundColor: '#f1f5f9', opacity: 0.7 },
     pickerWrap: { backgroundColor: '#f8fafc', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, overflow: 'hidden' },
+    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, border: 'none', outline: 'none', backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
     row: { flexDirection: 'row', gap: 12 },
     statBox: { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center' },
     statVal: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary },
