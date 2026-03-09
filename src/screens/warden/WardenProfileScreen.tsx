@@ -1,59 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import api from '../../services/api';
-import { COLORS, CDN_URL } from '../../constants/config';
-import { handleGlobalLogout } from '../../utils/authHelper';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS, SHADOWS, API_URL, CDN_URL } from '../../constants/config';
 
-interface Props { endpoint: string; updateEndpoint: string; color: string; title: string; logoutRoute: string; }
+interface ProfileData {
+    name: string;
+    email: string;
+    phone: string;
+    id: string;
+    photo?: string;
+}
 
-const ProfileBase = ({ endpoint, updateEndpoint, color, title, logoutRoute }: Props) => {
+interface ProfileBaseProps {
+    endpoint: string;
+    updateEndpoint: string;
+    color: string;
+    title: string;
+    logoutRoute: string;
+}
+
+const ProfileBase: React.FC<ProfileBaseProps> = ({ endpoint, updateEndpoint, color, title, logoutRoute }) => {
     const navigation = useNavigation<any>();
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => { fetchProfile(); }, []);
+    useEffect(() => {
+        fetchProfile();
+    }, []);
 
     const fetchProfile = async () => {
         try {
-            const res = await api.get(endpoint);
-            setData(res.data.warden || res.data.watchman || res.data.yearIncharge || res.data.admin || res.data);
-        } catch { Toast.show({ type: 'error', text1: 'Failed to fetch profile' }); }
-        finally { setLoading(false); }
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.get(`${API_URL}${endpoint}`, { headers: { Authorization: `Bearer ${token}` } });
+            setData(res.data.data || res.data);
+        } catch (err) {
+            Toast.show({ type: 'error', text1: 'Failed to load profile' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        await AsyncStorage.multiRemove(['token', 'user', 'role']);
+        navigation.replace(logoutRoute);
     };
 
     const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') { Alert.alert('Permission required'); return; }
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
-        if (!result.canceled && result.assets[0]) {
-            const compressed = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width: 800 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
-            setImageUri(compressed.uri);
-        }
+        const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.5 });
+        if (!res.canceled) setImageUri(res.assets[0].uri);
     };
 
     const handleSave = async () => {
         if (!imageUri) return;
         setSaving(true);
         try {
+            const token = await AsyncStorage.getItem('token');
             const formData = new FormData();
-            formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'profile.jpg' } as any);
-            await api.put(updateEndpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            Toast.show({ type: 'success', text1: 'Photo updated!' });
+            formData.append('photo', { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
+            await axios.put(`${API_URL}${updateEndpoint}`, formData, { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` } });
+            Toast.show({ type: 'success', text1: 'Profile photo updated' });
             setImageUri(null);
             fetchProfile();
-        } catch { Toast.show({ type: 'error', text1: 'Update failed' }); }
-        finally { setSaving(false); }
+        } catch (err) {
+            Toast.show({ type: 'error', text1: 'Failed to update photo' });
+        } finally {
+            setSaving(false);
+        }
     };
-
-    const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
         if (imageUri) return imageUri;
@@ -65,41 +84,48 @@ const ProfileBase = ({ endpoint, updateEndpoint, color, title, logoutRoute }: Pr
     if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={color} style={{ flex: 1 }} /></SafeAreaView>;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={[styles.header, { backgroundColor: color }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backText}>← Back</Text></TouchableOpacity>
-                <Text style={styles.headerTitle}>{title}</Text>
-                <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={[styles.hero, { backgroundColor: color }]}>
-                    <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
-                        <Image source={{ uri: getPhoto() }} style={styles.avatar} />
-                        <View style={styles.editBadge}><Text>📷</Text></View>
-                    </TouchableOpacity>
-                    <Text style={styles.name}>{data?.name}</Text>
-                    {imageUri && (
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-                            <Text style={styles.saveBtnText}>{saving ? 'Saving...' : '💾 Save Photo'}</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: color }}>
+            <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+                <View style={[styles.header, { backgroundColor: color }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backText}>← Back</Text></TouchableOpacity>
+                    <Text style={styles.headerTitle}>{title}</Text>
+                    <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+                </View>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ flex: 1 }}
+                >
+                    <View style={[styles.hero, { backgroundColor: color }]}>
+                        <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
+                            <Image source={{ uri: getPhoto() }} style={styles.avatar} />
+                            <View style={styles.editBadge}><Text>📷</Text></View>
                         </TouchableOpacity>
-                    )}
-                </View>
-                <View style={styles.card}>
-                    {[
-                        { label: 'Email', value: data?.email, emoji: '📧' },
-                        { label: 'Phone', value: data?.phone, emoji: '📱' },
-                        { label: 'ID', value: data?.id, emoji: '🆔' },
-                    ].map(({ label, value, emoji }) => value ? (
-                        <View key={label} style={styles.infoRow}>
-                            <Text style={styles.infoEmoji}>{emoji}</Text>
-                            <View>
-                                <Text style={styles.infoLabel}>{label}</Text>
-                                <Text style={styles.infoValue}>{value}</Text>
+                        <Text style={styles.name}>{data?.name}</Text>
+                        {imageUri && (
+                            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                                <Text style={styles.saveBtnText}>{saving ? 'Saving...' : '💾 Save Photo'}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <View style={styles.card}>
+                        {[
+                            { label: 'Email', value: data?.email, emoji: '📧' },
+                            { label: 'Phone', value: data?.phone, emoji: '📱' },
+                            { label: 'ID', value: data?.id, emoji: '🆔' },
+                        ].map(({ label, value, emoji }) => value ? (
+                            <View key={label} style={styles.infoRow}>
+                                <Text style={styles.infoEmoji}>{emoji}</Text>
+                                <View>
+                                    <Text style={styles.infoLabel}>{label}</Text>
+                                    <Text style={styles.infoValue}>{value}</Text>
+                                </View>
                             </View>
-                        </View>
-                    ) : null)}
-                </View>
-            </ScrollView>
+                        ) : null)}
+                    </View>
+                </ScrollView>
+            </View>
         </SafeAreaView>
     );
 };

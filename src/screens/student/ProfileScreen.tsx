@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border },
     inputDisabled: { backgroundColor: '#f1f5f9', opacity: 0.7 },
     pickerWrap: { backgroundColor: '#f8fafc', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, overflow: 'hidden' },
-    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, border: 'none', outline: 'none', backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
+    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
     row: { flexDirection: 'row', gap: 12 },
     statBox: { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center' },
     statVal: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary },

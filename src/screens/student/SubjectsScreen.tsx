@@ -79,6 +79,14 @@ const SubjectsScreen = () => {
         </TouchableOpacity>
     );
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
@@ -91,36 +99,34 @@ const SubjectsScreen = () => {
                     <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search subjects..." placeholderTextColor={COLORS.textLight} />
                 </View>
             </View>
-            {loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /> :
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-                    {semesters.length === 0 ? (
-                        <Text style={styles.emptyText}>No subjects found.</Text>
-                    ) : (
-                        semesters.map(sem => {
-                            const isExpanded = expandedSem === sem;
-                            return (
-                                <View key={sem} style={[styles.semesterGroup, isExpanded && styles.semesterGroupExpanded]}>
-                                    <TouchableOpacity style={styles.semesterHeader} onPress={() => toggleSem(sem)} activeOpacity={0.7}>
-                                        <Text style={styles.semTitle}>{sem === 0 ? 'General Subjects' : `Semester ${sem}`}</Text>
-                                        <View style={styles.semHeaderRight}>
-                                            <View style={styles.countBadge}>
-                                                <Text style={styles.countText}>{subjectsBySem[sem].length}</Text>
-                                            </View>
-                                            <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>▼</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+                {semesters.length === 0 ? (
+                    <Text style={styles.emptyText}>No subjects found.</Text>
+                ) : (
+                    semesters.map(sem => {
+                        const isExpanded = expandedSem === sem;
+                        return (
+                            <View key={sem} style={[styles.semesterGroup, isExpanded && styles.semesterGroupExpanded]}>
+                                <TouchableOpacity style={styles.semesterHeader} onPress={() => toggleSem(sem)} activeOpacity={0.7}>
+                                    <Text style={styles.semTitle}>{sem === 0 ? 'General Subjects' : `Semester ${sem}`}</Text>
+                                    <View style={styles.semHeaderRight}>
+                                        <View style={styles.countBadge}>
+                                            <Text style={styles.countText}>{subjectsBySem[sem].length}</Text>
                                         </View>
-                                    </TouchableOpacity>
+                                        <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>▼</Text>
+                                    </View>
+                                </TouchableOpacity>
 
-                                    {isExpanded && (
-                                        <View style={styles.semesterContent}>
-                                            {subjectsBySem[sem].map(renderSubject)}
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })
-                    )}
-                </ScrollView>
-            }
+                                {isExpanded && (
+                                    <View style={styles.semesterContent}>
+                                        {subjectsBySem[sem].map(renderSubject)}
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
