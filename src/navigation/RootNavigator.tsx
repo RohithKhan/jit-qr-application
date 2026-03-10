@@ -44,7 +44,7 @@ const RootNavigator = () => {
             case 'staff': return 'Staff';
             case 'warden': return 'Warden';
             case 'watchman': return 'Watchman';
-            case 'year-incharge': return 'YearIncharge';
+            case 'year_incharge': return 'YearIncharge';
             default: return 'Auth';
         }
     };
