@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    SafeAreaView, ScrollView, ActivityIndicator, Platform
+    SafeAreaView as RNTSafeAreaView, ScrollView, ActivityIndicator, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import { COLORS } from '../../constants/config';
@@ -14,10 +16,15 @@ const NewOutpassScreen = () => {
     const navigation = useNavigation<any>();
     const [reason, setReason] = useState('');
     const [outpassType, setOutpassType] = useState('Outing');
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-    const [fromTime, setFromTime] = useState('');
-    const [toTime, setToTime] = useState('');
+    const [fromDate, setFromDate] = useState<Date | null>(null);
+    const [toDate, setToDate] = useState<Date | null>(null);
+    const [fromTime, setFromTime] = useState<Date | null>(null);
+    const [toTime, setToTime] = useState<Date | null>(null);
+
+    const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+    const [showToDatePicker, setShowToDatePicker] = useState(false);
+    const [showFromTimePicker, setShowFromTimePicker] = useState(false);
+    const [showToTimePicker, setShowToTimePicker] = useState(false);
     const [skillrack, setSkillrack] = useState('');
     const [attendance, setAttendance] = useState('');
     const [loading, setLoading] = useState(false);
@@ -104,12 +111,32 @@ const NewOutpassScreen = () => {
         setLoading(true);
         try {
             const formData = new FormData();
+
+            // Format Dates precisely as 'YYYY-MM-DDTHH:mm' without timezone shifting
+            const formatDateTime = (dateObj: Date | null, timeObj: Date | null) => {
+                if (!dateObj) return '';
+
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+
+                let hours = '00';
+                let minutes = '00';
+
+                if (timeObj) {
+                    hours = String(timeObj.getHours()).padStart(2, '0');
+                    minutes = String(timeObj.getMinutes()).padStart(2, '0');
+                }
+
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+            };
+
             formData.append('outpasstype', outpassType);
-            formData.append('fromDate', `${fromDate}T${fromTime || '00:00'}`);
-            formData.append('toDate', `${toDate}T${toTime || '00:00'}`);
+            formData.append('fromDate', formatDateTime(fromDate, fromTime));
+            formData.append('toDate', formatDateTime(toDate, toTime));
             formData.append('reason', reason);
-            formData.append('skillrack', skillrack);
-            formData.append('attendance', attendance);
+            formData.append('skillrack', skillrack || '');
+            formData.append('attendance', attendance || '');
 
             if (outpassType === 'OD' && document) {
                 if (Platform.OS === 'web') {
@@ -132,12 +159,21 @@ const NewOutpassScreen = () => {
             Toast.show({ type: 'success', text1: 'Outpass submitted successfully!' });
             navigation.goBack();
         } catch (err: any) {
+            console.error('Submit Outpass Error:', err);
             Toast.show({ type: 'error', text1: 'Failed to submit', text2: err.response?.data?.message || 'Please try again.' });
         } finally { setLoading(false); }
     };
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+            </SafeAreaView>
+        );
+    }
+
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backText}>← Back</Text>
@@ -201,26 +237,138 @@ const NewOutpassScreen = () => {
                         </View>
                     )}
 
-                    <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 1 }]}>
-                            <Text style={styles.label}>From Date * (YYYY-MM-DD)</Text>
-                            <TextInput style={styles.input} value={fromDate} onChangeText={setFromDate} placeholder="2025-01-15" placeholderTextColor={COLORS.textLight} />
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>From Date & Time *</Text>
+                        <View style={styles.row}>
+                            {Platform.OS === 'web' ? (
+                                <>
+                                    <input
+                                        type="date"
+                                        style={styles.webInput as any}
+                                        value={fromDate ? fromDate.toISOString().split('T')[0] : ''}
+                                        onChange={(e) => {
+                                            if (e.target.value) setFromDate(new Date(e.target.value));
+                                        }}
+                                    />
+                                    <input
+                                        type="time"
+                                        style={styles.webInput as any}
+                                        value={fromTime ? fromTime.toTimeString().slice(0, 5) : ''}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                const d = new Date();
+                                                const [h, m] = e.target.value.split(':');
+                                                d.setHours(parseInt(h), parseInt(m), 0);
+                                                setFromTime(d);
+                                            }
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TouchableOpacity style={[styles.input, { flex: 1, justifyContent: 'center' }]} onPress={() => setShowFromDatePicker(true)}>
+                                        <Text style={{ color: fromDate ? COLORS.textPrimary : COLORS.textLight }}>
+                                            {fromDate ? fromDate.toLocaleDateString() : 'Select Date'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={[styles.input, { flex: 1, justifyContent: 'center' }]} onPress={() => setShowFromTimePicker(true)}>
+                                        <Text style={{ color: fromTime ? COLORS.textPrimary : COLORS.textLight }}>
+                                            {fromTime ? fromTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
-                        <View style={[styles.inputGroup, { flex: 1 }]}>
-                            <Text style={styles.label}>To Date * (YYYY-MM-DD)</Text>
-                            <TextInput style={styles.input} value={toDate} onChangeText={setToDate} placeholder="2025-01-16" placeholderTextColor={COLORS.textLight} />
-                        </View>
+
+                        {Platform.OS !== 'web' && showFromDatePicker && (
+                            <DateTimePicker
+                                value={fromDate || new Date()}
+                                mode="date"
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowFromDatePicker(Platform.OS === 'ios');
+                                    if (selectedDate) setFromDate(selectedDate);
+                                }}
+                            />
+                        )}
+                        {Platform.OS !== 'web' && showFromTimePicker && (
+                            <DateTimePicker
+                                value={fromTime || new Date()}
+                                mode="time"
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowFromTimePicker(Platform.OS === 'ios');
+                                    if (selectedDate) setFromTime(selectedDate);
+                                }}
+                            />
+                        )}
                     </View>
 
-                    <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 1 }]}>
-                            <Text style={styles.label}>From Time</Text>
-                            <TextInput style={styles.input} value={fromTime} onChangeText={setFromTime} placeholder="09:00" placeholderTextColor={COLORS.textLight} />
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>To Date & Time *</Text>
+                        <View style={styles.row}>
+                            {Platform.OS === 'web' ? (
+                                <>
+                                    <input
+                                        type="date"
+                                        style={styles.webInput as any}
+                                        value={toDate ? toDate.toISOString().split('T')[0] : ''}
+                                        onChange={(e) => {
+                                            if (e.target.value) setToDate(new Date(e.target.value));
+                                        }}
+                                    />
+                                    <input
+                                        type="time"
+                                        style={styles.webInput as any}
+                                        value={toTime ? toTime.toTimeString().slice(0, 5) : ''}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                const d = new Date();
+                                                const [h, m] = e.target.value.split(':');
+                                                d.setHours(parseInt(h), parseInt(m), 0);
+                                                setToTime(d);
+                                            }
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TouchableOpacity style={[styles.input, { flex: 1, justifyContent: 'center' }]} onPress={() => setShowToDatePicker(true)}>
+                                        <Text style={{ color: toDate ? COLORS.textPrimary : COLORS.textLight }}>
+                                            {toDate ? toDate.toLocaleDateString() : 'Select Date'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={[styles.input, { flex: 1, justifyContent: 'center' }]} onPress={() => setShowToTimePicker(true)}>
+                                        <Text style={{ color: toTime ? COLORS.textPrimary : COLORS.textLight }}>
+                                            {toTime ? toTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
-                        <View style={[styles.inputGroup, { flex: 1 }]}>
-                            <Text style={styles.label}>To Time</Text>
-                            <TextInput style={styles.input} value={toTime} onChangeText={setToTime} placeholder="17:00" placeholderTextColor={COLORS.textLight} />
-                        </View>
+
+                        {Platform.OS !== 'web' && showToDatePicker && (
+                            <DateTimePicker
+                                value={toDate || new Date()}
+                                mode="date"
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowToDatePicker(Platform.OS === 'ios');
+                                    if (selectedDate) setToDate(selectedDate);
+                                }}
+                            />
+                        )}
+                        {Platform.OS !== 'web' && showToTimePicker && (
+                            <DateTimePicker
+                                value={toTime || new Date()}
+                                mode="time"
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowToTimePicker(Platform.OS === 'ios');
+                                    if (selectedDate) setToTime(selectedDate);
+                                }}
+                            />
+                        )}
                     </View>
 
                     {hasPending && (
@@ -251,7 +399,8 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border },
     textarea: { height: 100, textAlignVertical: 'top' },
     pickerWrap: { backgroundColor: '#f8fafc', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, overflow: 'hidden' },
-    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, border: 'none', outline: 'none', backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
+    picker: Platform.OS === 'web' ? { paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, backgroundColor: 'transparent' } as any : { color: COLORS.textPrimary, height: 48, backgroundColor: 'transparent' },
+    webInput: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1.5, borderColor: COLORS.border } as any,
     row: { flexDirection: 'row', gap: 10 },
     btn: { backgroundColor: COLORS.primary, paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginTop: 8 },
     btnDisabled: { opacity: 0.65 },

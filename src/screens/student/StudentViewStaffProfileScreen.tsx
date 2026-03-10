@@ -15,83 +15,90 @@ const StudentViewStaffProfileScreen = () => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Text style={styles.backText}>← Back</Text>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Staff Profile</Text>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.hero}>
-                    <Image source={{ uri: getPhoto() }} style={styles.avatar} />
-                    <Text style={styles.name}>{staff?.name}</Text>
-                    <Text style={styles.designation}>{staff?.designation || 'Faculty'}</Text>
-                    <View style={styles.badge}><Text style={styles.badgeText}>{staff?.department || 'Department'}</Text></View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.primaryDark }}>
+            <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Text style={styles.backText}>← Back</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Staff Profile</Text>
                 </View>
-                <View style={styles.card}>
-                    {[
-                        { label: 'Email', value: staff?.email, emoji: '📧' },
-                        { label: 'Phone', value: staff?.phone || staff?.contactNumber, emoji: '📱', fallback: 'Not provided' },
-                        { label: 'Department', value: staff?.department, emoji: '🏛️', fallback: 'N/A' },
-                        { label: 'Designation', value: staff?.designation, emoji: '💼', fallback: 'Faculty' },
-                        { label: 'Qualification', value: staff?.qualification, emoji: '🎓', fallback: 'N/A' },
-                        { label: 'Experience', value: staff?.experience ? `${staff.experience} Years` : null, emoji: '⏳', fallback: 'N/A' },
-                        { label: 'Gender', value: staff?.gender, emoji: '👤' }
-                    ].map(({ label, value, emoji, fallback }) => (value || fallback) ? (
-                        <View key={label} style={styles.infoRow}>
-                            <Text style={styles.infoEmoji}>{emoji}</Text>
-                            <View>
-                                <Text style={styles.infoLabel}>{label}</Text>
-                                <Text style={styles.infoValue}>{value || fallback}</Text>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.hero}>
+                        <Image source={{ uri: getPhoto() }} style={styles.avatar} />
+                        <Text style={styles.name}>{staff?.name}</Text>
+                        <Text style={styles.designation}>{staff?.designation || 'Faculty'}</Text>
+                        <View style={styles.badge}><Text style={styles.badgeText}>{staff?.department || 'Department'}</Text></View>
+                    </View>
+                    <View style={styles.card}>
+                        {[
+                            { label: 'Email', value: staff?.email, emoji: '📧' },
+                            { label: 'Phone', value: staff?.phone || staff?.contactNumber, emoji: '📱', fallback: 'Not provided' },
+                            { label: 'Department', value: staff?.department, emoji: '🏛️', fallback: 'N/A' },
+                            { label: 'Designation', value: staff?.designation, emoji: '💼', fallback: 'Faculty' },
+                            { label: 'Qualification', value: staff?.qualification, emoji: '🎓', fallback: 'N/A' },
+                            { label: 'Experience', value: staff?.experience ? `${staff.experience} Years` : null, emoji: '⏳', fallback: 'N/A' },
+                            { label: 'Gender', value: staff?.gender, emoji: '👤' }
+                        ].map(({ label, value, emoji, fallback }) => (value || fallback) ? (
+                            <View key={label} style={styles.infoRow}>
+                                <Text style={styles.infoEmoji}>{emoji}</Text>
+                                <View>
+                                    <Text style={styles.infoLabel}>{label}</Text>
+                                    <Text style={styles.infoValue}>{value || fallback}</Text>
+                                </View>
+                            </View>
+                        ) : null)}
+                    </View>
+
+                    {/* Optional Subjects Section if available in real API data */}
+                    {(staff as any)?.subjects && (staff as any).subjects.length > 0 && (
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>📚 Subjects Handled</Text>
+                            <View style={styles.tagsContainer}>
+                                {(staff as any).subjects.map((sub: string, i: number) => (
+                                    <View key={i} style={styles.tag}>
+                                        <Text style={styles.tagText}>{sub}</Text>
+                                    </View>
+                                ))}
                             </View>
                         </View>
-                    ) : null)}
-                </View>
+                    )}
 
-                {/* Optional Subjects Section if available in real API data */}
-                {(staff as any)?.subjects && (staff as any).subjects.length > 0 && (
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>📚 Subjects Handled</Text>
-                        <View style={styles.tagsContainer}>
-                            {(staff as any).subjects.map((sub: string, i: number) => (
-                                <View key={i} style={styles.tag}>
-                                    <Text style={styles.tagText}>{sub}</Text>
-                                </View>
-                            ))}
+                    {/* Knowledge & Skills Section */}
+                    {staff?.skills && staff.skills.length > 0 && (
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>💡 Knowledge & Skills</Text>
+                            <View style={styles.tagsContainer}>
+                                {staff.skills.map((skill: string, i: number) => (
+                                    <View key={i} style={[styles.tag, styles.skillTag]}>
+                                        <Text style={[styles.tagText, styles.skillTagText]}>{skill}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
-                    </View>
-                )}
+                    )}
 
-                {/* Knowledge & Skills Section */}
-                {staff?.skills && staff.skills.length > 0 && (
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>💡 Knowledge & Skills</Text>
-                        <View style={styles.tagsContainer}>
-                            {staff.skills.map((skill: string, i: number) => (
-                                <View key={i} style={[styles.tag, styles.skillTag]}>
-                                    <Text style={[styles.tagText, styles.skillTagText]}>{skill}</Text>
-                                </View>
-                            ))}
+                    {/* Achievements Section */}
+                    {staff?.achievements && staff.achievements.length > 0 && (
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>🏆 Achievements</Text>
+                            <View style={{ gap: 12 }}>
+                                {staff.achievements.map((achievement: string, i: number) => (
+                                    <View key={i} style={styles.achievementRow}>
+                                        <Text style={styles.achievementCheck}>✓</Text>
+                                        <Text style={styles.achievementText}>{achievement}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
-                    </View>
-                )}
-
-                {/* Achievements Section */}
-                {staff?.achievements && staff.achievements.length > 0 && (
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-                        <View style={{ gap: 12 }}>
-                            {staff.achievements.map((achievement: string, i: number) => (
-                                <View key={i} style={styles.achievementRow}>
-                                    <Text style={styles.achievementCheck}>✓</Text>
-                                    <Text style={styles.achievementText}>{achievement}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-                )}
-            </ScrollView>
+                    )}
+                </ScrollView>
+            </View>
         </SafeAreaView>
     );
 };
@@ -122,6 +129,7 @@ const styles = StyleSheet.create({
     achievementRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#F8FAFC', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
     achievementCheck: { color: '#10B981', fontSize: 18, fontWeight: '800' },
     achievementText: { color: COLORS.textPrimary, fontSize: 14, flex: 1, fontWeight: '500', lineHeight: 20 },
+    scrollContent: { paddingBottom: 120 },
 });
 
 export default StudentViewStaffProfileScreen;

@@ -3,6 +3,7 @@ import {
     View, Text, FlatList, TouchableOpacity, StyleSheet,
     SafeAreaView, TextInput, Image, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView as SafeAreaContext } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
@@ -39,6 +40,14 @@ const StaffsScreen = () => {
         return s.photo.startsWith('http') ? s.photo : `${CDN_URL}${s.photo}`;
     };
 
+    if (loading) {
+        return (
+            <SafeAreaContext style={styles.container} edges={['top', 'left', 'right']}>
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+            </SafeAreaContext>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -50,27 +59,24 @@ const StaffsScreen = () => {
             <View style={styles.searchContainer}>
                 <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search by name or dept..." placeholderTextColor={COLORS.textLight} />
             </View>
-            {loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /> :
-                <FlatList
-                    data={filtered}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No staff found.</Text>}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('StaffProfile', { staff: item })}>
-                            <Image source={{ uri: getPhoto(item) }} style={styles.avatar} />
-                            <View style={styles.info}>
-                                <Text style={styles.name}>{item.name}</Text>
-                                <Text style={styles.dept}>{item.department || 'Department N/A'}</Text>
-                                {item.designation && <Text style={styles.designation}>{item.designation}</Text>}
-                            </View>
-                            <Text style={styles.arrow}>›</Text>
-                        </TouchableOpacity>
-                    )}
-
-                />
-            }
+            <FlatList
+                data={filtered}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={<Text style={styles.emptyText}>No staff found.</Text>}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('StaffProfile', { staff: item })}>
+                        <Image source={{ uri: getPhoto(item) }} style={styles.avatar} />
+                        <View style={styles.info}>
+                            <Text style={styles.name}>{item.name}</Text>
+                            <Text style={styles.dept}>{item.department || 'Department N/A'}</Text>
+                            {item.designation && <Text style={styles.designation}>{item.designation}</Text>}
+                        </View>
+                        <Text style={styles.arrow}>›</Text>
+                    </TouchableOpacity>
+                )}
+            />
         </SafeAreaView>
     );
 };

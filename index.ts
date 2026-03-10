@@ -1,5 +1,8 @@
 import 'react-native-gesture-handler';
 import { registerRootComponent } from 'expo';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['props.pointerEvents is deprecated']);
 
 import App from './App';
 

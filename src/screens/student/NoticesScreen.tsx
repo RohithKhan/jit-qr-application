@@ -20,24 +20,30 @@ const NoticesScreen = () => {
         finally { setLoading(false); }
     };
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+            </SafeAreaView>
+        );
+    }
+
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}><Text style={styles.headerTitle}>📢 Notices</Text></View>
-            {loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /> :
-                <FlatList
-                    data={notices}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.list}
-                    renderItem={({ item }) => (
-                        <View style={styles.card}>
-                            <Text style={styles.title}>{item.title}</Text>
-                            <Text style={styles.content}>{item.content}</Text>
-                            <Text style={styles.meta}>{item.staffId?.name ? `By ${item.staffId.name} • ` : ''}{new Date(item.createdAt).toLocaleDateString()}</Text>
-                        </View>
-                    )}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No notices available.</Text>}
-                />
-            }
+            <FlatList
+                data={notices}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={styles.list}
+                renderItem={({ item }) => (
+                    <View style={styles.card}>
+                        <Text style={styles.title}>{item.title}</Text>
+                        <Text style={styles.content}>{item.content}</Text>
+                        <Text style={styles.meta}>{item.staffId?.name ? `By ${item.staffId.name} • ` : ''}{new Date(item.createdAt).toLocaleDateString()}</Text>
+                    </View>
+                )}
+                ListEmptyComponent={<Text style={styles.emptyText}>No notices available.</Text>}
+            />
         </SafeAreaView>
     );
 };

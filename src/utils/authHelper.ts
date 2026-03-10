@@ -5,7 +5,7 @@ import { navigationRef } from '../services/api';
 
 export const handleGlobalLogout = async () => {
     const doLogout = async () => {
-        await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
+        await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType', 'staff_profile']);
         if (navigationRef.isReady()) {
             navigationRef.dispatch(
                 CommonActions.reset({

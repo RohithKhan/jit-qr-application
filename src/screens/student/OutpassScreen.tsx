@@ -39,6 +39,14 @@ const OutpassScreen = () => {
         'staff-approved': '👍 Staff Approved', 'warden-approved': '🏠 Warden Approved',
     }[status] || status);
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
@@ -47,33 +55,31 @@ const OutpassScreen = () => {
                     <Text style={styles.addText}>+ New</Text>
                 </TouchableOpacity>
             </View>
-            {loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} /> :
-                <FlatList
-                    data={outpasses}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No outpass requests yet.</Text>}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOutpasses(); }} />}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.card, item.outpassType === 'emergency' && styles.emergencyCard]}
-                            activeOpacity={0.7}
-                            onPress={() => navigation.navigate('OutpassDetails', { outpass: item })}
-                        >
-                            {item.outpassType === 'emergency' && <Text style={styles.emergencyBadge}>🚨 EMERGENCY</Text>}
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.type}>{item.outpassType || (item as any).outpasstype || 'Regular'}</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: statusColor[item.status] || '#6b7280' }]}>
-                                    <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
-                                </View>
+            <FlatList
+                data={outpasses}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={<Text style={styles.emptyText}>No outpass requests yet.</Text>}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOutpasses(); }} />}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[styles.card, item.outpassType === 'emergency' && styles.emergencyCard]}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate('OutpassDetails', { outpass: item })}
+                    >
+                        {item.outpassType === 'emergency' && <Text style={styles.emergencyBadge}>🚨 EMERGENCY</Text>}
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.type}>{item.outpassType || (item as any).outpasstype || 'Regular'}</Text>
+                            <View style={[styles.statusBadge, { backgroundColor: statusColor[item.status] || '#6b7280' }]}>
+                                <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
                             </View>
-                            <Text style={styles.reason}>{item.reason}</Text>
-                            <Text style={styles.date}>📅 {new Date(item.fromDate).toLocaleDateString()} → {new Date(item.toDate).toLocaleDateString()}</Text>
-                        </TouchableOpacity>
-                    )}
-                />
-            }
+                        </View>
+                        <Text style={styles.reason}>{item.reason}</Text>
+                        <Text style={styles.date}>📅 {new Date(item.fromDate).toLocaleDateString()} → {new Date(item.toDate).toLocaleDateString()}</Text>
+                    </TouchableOpacity>
+                )}
+            />
         </SafeAreaView>
     );
 };
