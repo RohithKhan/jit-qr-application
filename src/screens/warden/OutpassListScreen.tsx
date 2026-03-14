@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
 
 export const WardenOutpassListScreen = () => <OutpassHistoryList endpoint="/warden/outpass/all" color="#1a6b4a" />;
 export const WatchmanOutpassListScreen = () => <OutpassHistoryList endpoint="/watchman/outpass/all" color="#4a3728" />;
-export const YIOutpassListScreen = () => <OutpassHistoryList endpoint="/year-incharge/outpass/all" color="#7c3aed" />;
+export const YIOutpassListScreen = () => <OutpassHistoryList endpoint="/incharge/outpass/all" color="#7c3aed" />;
 
 export default OutpassHistoryList;

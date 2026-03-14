@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
 
 export const ManageStaffScreen = () => <AdminManageScreen title="Manage Staff" endpoint="/admin/staff" deleteEndpoint="/admin/staff/:id" fields={['name', 'email', 'department']} />;
 export const ManageWardenScreen = () => <AdminManageScreen title="Manage Wardens" endpoint="/admin/wardens" deleteEndpoint="/admin/wardens/:id" fields={['name', 'email']} />;
-export const ManageYearInchargeScreen = () => <AdminManageScreen title="Year Incharge" endpoint="/admin/year-incharge" deleteEndpoint="/admin/year-incharge/:id" fields={['name', 'email', 'department']} />;
+export const ManageYearInchargeScreen = () => <AdminManageScreen title="Year Incharge" endpoint="/admin/incharge" deleteEndpoint="/admin/incharge/:id" fields={['name', 'email', 'department']} />;
 export const ManageSecurityScreen = () => <AdminManageScreen title="Security / Watchman" endpoint="/admin/security" deleteEndpoint="/admin/security/:id" fields={['name', 'email']} />;
 export const ManageBusScreen = () => <AdminManageScreen title="Bus Routes" endpoint="/api/bus/routes" fields={['routeNumber', 'name']} />;
 export const OutpassAdminScreen = () => <AdminManageScreen title="All Outpasses" endpoint="/admin/outpasses" fields={['reason', 'status']} />;

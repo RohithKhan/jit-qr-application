@@ -21,7 +21,7 @@ const YearInchargeLoginScreen = () => {
         }
         setLoading(true);
         try {
-            const response = await api.post('/year-incharge/login', { email, password });
+            const response = await api.post('/incharge/login', { email, password });
             if (response.status === 200) {
                 await AsyncStorage.multiSet([
                     ['token', response.data.token],

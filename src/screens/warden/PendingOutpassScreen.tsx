@@ -118,7 +118,7 @@ export const WardenPendingOutpassScreen = () => (
 
 // Year Incharge pending outpass screen
 export const YIPendingOutpassScreen = () => (
-    <OutpassApprovalList role="year-incharge" endpoint="/year-incharge/outpass/pending" approveEndpoint="/year-incharge/outpass/:id/approve" rejectEndpoint="/year-incharge/outpass/:id/reject" color="#7c3aed" />
+    <OutpassApprovalList role="year-incharge" endpoint="/incharge/outpass/pending" approveEndpoint="/incharge/outpass/:id/approve" rejectEndpoint="/incharge/outpass/:id/reject" color="#7c3aed" />
 );
 
 export default OutpassApprovalList;

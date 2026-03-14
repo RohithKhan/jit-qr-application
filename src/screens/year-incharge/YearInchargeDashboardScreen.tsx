@@ -17,7 +17,7 @@ const YearInchargeDashboardScreen = () => {
 
     const fetchProfile = async () => {
         try {
-            const res = await api.get('/year-incharge/profile');
+            const res = await api.get('/incharge/profile');
             setYi(res.data.yearIncharge || res.data);
         } catch { Toast.show({ type: 'error', text1: 'Failed to fetch profile' }); }
         finally { setLoading(false); }

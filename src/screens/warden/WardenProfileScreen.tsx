@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
 
 export const WardenProfileScreen = () => <ProfileBase endpoint="/warden/profile" updateEndpoint="/warden/profile/update" color="#1a6b4a" title="Warden Profile" logoutRoute="Auth" />;
 export const WatchmanProfileScreen = () => <ProfileBase endpoint="/watchman/profile" updateEndpoint="/watchman/profile/update" color="#4a3728" title="Watchman Profile" logoutRoute="Auth" />;
-export const YearInchargeProfileScreen = () => <ProfileBase endpoint="/year-incharge/profile" updateEndpoint="/year-incharge/profile/update" color="#7c3aed" title="YI Profile" logoutRoute="Auth" />;
+export const YearInchargeProfileScreen = () => <ProfileBase endpoint="/incharge/profile" updateEndpoint="/incharge/profile/update" color="#7c3aed" title="YI Profile" logoutRoute="Auth" />;
 export const AdminProfileScreen = () => <ProfileBase endpoint="/admin/profile" updateEndpoint="/admin/profile/update" color="#1e293b" title="Admin Profile" logoutRoute="Auth" />;
 
 export default ProfileBase;

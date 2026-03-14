@@ -54,7 +54,6 @@ const StaffDashboardScreen = () => {
         { icon: 'checkmark-circle', label: 'Pass Approvals', tab: 'ApprovalTab', screen: 'PassApproval', color: COLORS.primary, bgColor: COLORS.primaryLight },
         { icon: 'people', label: 'Students List', tab: 'StudentTab', screen: 'StudentRegistration', params: { initialTab: 'added' }, color: COLORS.secondary, bgColor: '#e0f2fe' },
         { icon: 'person-add', label: 'Registration', tab: 'StudentTab', screen: 'StudentRegistration', params: { initialTab: 'bulk' }, color: '#8b5cf6', bgColor: '#ede9fe' },
-        { icon: 'notifications', label: 'Notices', tab: 'ProfileTab', screen: 'StaffNotices', color: COLORS.warning, bgColor: '#fef3c7' },
         { icon: 'person', label: 'My Profile', tab: 'ProfileTab', screen: 'StaffProfile', color: COLORS.textMuted, bgColor: '#f1f5f9' },
     ];
 

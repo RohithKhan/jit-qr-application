@@ -83,6 +83,6 @@ const styles = StyleSheet.create({
 
 export const WardenStudentViewScreen = () => <StudentListView endpoint="/warden/students" color="#1a6b4a" />;
 export const WatchmanStudentViewScreen = () => <StudentListView endpoint="/watchman/students" color="#4a3728" />;
-export const YIStudentViewScreen = () => <StudentListView endpoint="/year-incharge/students" color="#7c3aed" />;
+export const YIStudentViewScreen = () => <StudentListView endpoint="/incharge/students" color="#7c3aed" />;
 
 export default StudentListView;
