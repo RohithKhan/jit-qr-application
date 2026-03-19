@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeInDown, FadeInUp, withSpring, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
@@ -52,62 +52,64 @@ const WelcomeScreen = () => {
             <View style={styles.bgCircleTop} />
             <View style={styles.bgCircleBottom} />
 
-            <View style={styles.hero}>
-                <Animated.View entering={FadeInUp.delay(200).springify().damping(15)} style={styles.headerContainer}>
-                    <Animated.View style={[styles.logoContainer, pulseStyle]}>
-                        <Ionicons name="school" size={48} color={COLORS.primary} />
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.hero}>
+                    <Animated.View entering={FadeInUp.delay(200).springify().damping(15)} style={styles.headerContainer}>
+                        <Animated.View style={[styles.logoContainer, pulseStyle]}>
+                            <Ionicons name="school" size={48} color={COLORS.primary} />
+                        </Animated.View>
+                        <Text style={styles.title}>JIT Portal</Text>
+                        <Text style={styles.subtitle}>
+                            Your Academic Journey, Streamlined.{'\n'}Access resources and connect seamlessly.
+                        </Text>
                     </Animated.View>
-                    <Text style={styles.title}>JIT Portal</Text>
-                    <Text style={styles.subtitle}>
-                        Your Academic Journey, Streamlined.{'\n'}Access resources and connect seamlessly.
-                    </Text>
-                </Animated.View>
 
-                <Animated.View entering={FadeInUp.delay(300).springify().damping(15)} style={styles.statsRow}>
-                    <View style={styles.stat}>
-                        <Text style={styles.statValue}>1000+</Text>
-                        <Text style={styles.statLabel}>Students</Text>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.stat}>
-                        <Text style={styles.statValue}>50+</Text>
-                        <Text style={styles.statLabel}>Faculty</Text>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.stat}>
-                        <Text style={styles.statValue}>100%</Text>
-                        <Text style={styles.statLabel}>Digital</Text>
-                    </View>
-                </Animated.View>
-
-                <View style={styles.actionsContainer}>
-                    <AnimatedTouchableOpacity
-                        entering={FadeInDown.delay(400).springify().damping(15)}
-                        style={styles.btnPrimary}
-                        onPress={() => navigation.navigate('Login')}
-                        activeOpacity={0.9}
-                    >
-                        <View style={styles.btnPrimaryContent}>
-                            <Ionicons name="people-circle-outline" size={28} color={COLORS.primaryDark} style={{ marginRight: 12 }} />
-                            <Text style={styles.btnPrimaryText}>Student / Staff Login</Text>
+                    <Animated.View entering={FadeInUp.delay(300).springify().damping(15)} style={styles.statsRow}>
+                        <View style={styles.stat}>
+                            <Text style={styles.statValue}>1000+</Text>
+                            <Text style={styles.statLabel}>Students</Text>
                         </View>
-                        <View style={styles.btnPrimaryArrow}>
-                            <Ionicons name="arrow-forward" size={22} color={COLORS.white} />
+                        <View style={styles.divider} />
+                        <View style={styles.stat}>
+                            <Text style={styles.statValue}>50+</Text>
+                            <Text style={styles.statLabel}>Faculty</Text>
                         </View>
-                    </AnimatedTouchableOpacity>
+                        <View style={styles.divider} />
+                        <View style={styles.stat}>
+                            <Text style={styles.statValue}>100%</Text>
+                            <Text style={styles.statLabel}>Digital</Text>
+                        </View>
+                    </Animated.View>
 
-                    <Animated.Text entering={FadeInDown.delay(500)} style={styles.sectionDivider}>
-                        Other Portals
-                    </Animated.Text>
+                    <View style={styles.actionsContainer}>
+                        <AnimatedTouchableOpacity
+                            entering={FadeInDown.delay(400).springify().damping(15)}
+                            style={styles.btnPrimary}
+                            onPress={() => navigation.navigate('Login')}
+                            activeOpacity={0.9}
+                        >
+                            <View style={styles.btnPrimaryContent}>
+                                <Ionicons name="people-circle-outline" size={28} color={COLORS.primaryDark} style={{ marginRight: 12 }} />
+                                <Text style={styles.btnPrimaryText}>Student / Staff Login</Text>
+                            </View>
+                            <View style={styles.btnPrimaryArrow}>
+                                <Ionicons name="arrow-forward" size={22} color={COLORS.white} />
+                            </View>
+                        </AnimatedTouchableOpacity>
 
-                    <View style={styles.secondaryActions}>
-                        <RoleButton icon="shield-account" title="Warden Login" onPress={() => navigation.navigate('WardenLogin')} delay={550} />
-                        <RoleButton icon="security" title="Watchman Login" onPress={() => navigation.navigate('WatchmanLogin')} delay={650} />
-                        <RoleButton icon="account-tie" title="Year Incharge Login" onPress={() => navigation.navigate('YearInchargeLogin')} delay={750} />
-                        <RoleButton icon="laptop" title="Administrator Login" onPress={() => navigation.navigate('AdminLogin')} delay={850} ghost={true} />
+                        <Animated.Text entering={FadeInDown.delay(500)} style={styles.sectionDivider}>
+                            Other Portals
+                        </Animated.Text>
+
+                        <View style={styles.secondaryActions}>
+                            <RoleButton icon="shield-account" title="Warden Login" onPress={() => navigation.navigate('WardenLogin')} delay={550} />
+                            <RoleButton icon="security" title="Watchman Login" onPress={() => navigation.navigate('WatchmanLogin')} delay={650} />
+                            <RoleButton icon="account-tie" title="Year Incharge Login" onPress={() => navigation.navigate('YearInchargeLogin')} delay={750} />
+                            <RoleButton icon="laptop" title="Administrator Login" onPress={() => navigation.navigate('AdminLogin')} delay={850} ghost={true} />
+                        </View>
                     </View>
                 </View>
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
         right: -width * 0.3,
     },
     hero: {
-        flex: 1,
+        flexGrow: 1,
         justifyContent: 'center',
         paddingHorizontal: 24,
         paddingTop: 10,

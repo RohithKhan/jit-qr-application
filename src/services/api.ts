@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { API_URL } from '../constants/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createNavigationContainerRef } from '@react-navigation/native';
+import { createNavigationContainerRef, ThemeContext } from '@react-navigation/native';
+import { InteractionManager } from 'react-native';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -28,7 +29,7 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-    (response) => response,
+            (response) => response,
     async (error) => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
@@ -41,7 +42,7 @@ api.interceptors.response.use(
                 await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
                 if (navigationRef) {
                     navigationRef.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                }
+                } 
             }
         }
         return Promise.reject(error);

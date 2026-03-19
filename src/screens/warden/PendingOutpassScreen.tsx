@@ -1,86 +1,132 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { StudentOutpass } from '../../types';
-import { COLORS, CDN_URL } from '../../constants/config';
+import { COLORS, SHADOWS } from '../../constants/config';
 
-interface Props { role: 'warden' | 'year-incharge'; endpoint: string; approveEndpoint: string; rejectEndpoint: string; color: string; }
+interface Props { role: 'warden' | 'year-incharge'; endpoint: string; color: string; }
 
-const OutpassApprovalList = ({ role, endpoint, approveEndpoint, rejectEndpoint, color }: Props) => {
+const OutpassApprovalList = ({ role, endpoint, color }: Props) => {
     const navigation = useNavigation<any>();
-    const [outpasses, setOutpasses] = useState<StudentOutpass[]>([]);
+    const [outpasses, setOutpasses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const themeColor = role === 'warden' ? '#0047AB' : color;
 
     useEffect(() => { fetchOutpasses(); }, []);
 
     const fetchOutpasses = async () => {
         try {
             const res = await api.get(endpoint);
-            const data = (res.data.outpasses || res.data || []).sort((a: StudentOutpass, b: StudentOutpass) =>
-                a.outpassType === 'emergency' ? -1 : b.outpassType === 'emergency' ? 1 : 0
-            );
-            setOutpasses(data);
-        } catch { Toast.show({ type: 'error', text1: 'Failed to fetch requests' }); }
-        finally { setLoading(false); }
-    };
+            const allData = res.data.outpasses || res.data.data || res.data.students || res.data || [];
+            
+            const pendingData = allData.filter((item: any) => {
+                const ws = (item.wardenapprovalstatus || item.status || '').toLowerCase();
+                return ws !== 'approved' && ws !== 'rejected' && ws !== 'declined';
+            }).sort((a: any, b: any) => {
+                const isAEmergency = a.outpassType?.toLowerCase() === 'emergency' || a.type?.toLowerCase() === 'emergency' || a.outpasstype?.toLowerCase() === 'emergency';
+                const isBEmergency = b.outpassType?.toLowerCase() === 'emergency' || b.type?.toLowerCase() === 'emergency' || b.outpasstype?.toLowerCase() === 'emergency';
+                if (isAEmergency && !isBEmergency) return -1;
+                if (!isAEmergency && isBEmergency) return 1;
 
-    const handleAction = async (id: string, action: 'approve' | 'reject') => {
-        Alert.alert(`${action === 'approve' ? 'Approve' : 'Reject'}?`, 'This action cannot be undone.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: action === 'approve' ? 'Approve' : 'Reject', style: action === 'reject' ? 'destructive' : 'default', onPress: async () => {
-                    try {
-                        const ep = action === 'approve' ? approveEndpoint.replace(':id', id) : rejectEndpoint.replace(':id', id);
-                        await api.put(ep);
-                        Toast.show({ type: 'success', text1: `Outpass ${action}d!` });
-                        fetchOutpasses();
-                    } catch { Toast.show({ type: 'error', text1: `Failed to ${action}` }); }
-                }
-            }
-        ]);
-    };
+                return new Date(b.createdAt || b.outDate || Date.now()).getTime() - new Date(a.createdAt || a.outDate || Date.now()).getTime();
+            });
 
-    const getPhoto = (item: StudentOutpass) => {
-        const p = item.studentId?.photo;
-        if (!p) return `https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentId?.name || 'S')}&background=0047AB&color=fff`;
-        return p.startsWith('http') ? p : `${CDN_URL}${p}`;
+            setOutpasses(pendingData);
+        } catch { 
+            Toast.show({ type: 'error', text1: 'Failed to fetch pending requests' }); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     return (
-        <SafeAreaView style={[styles.container]}>
-            <View style={[styles.header, { backgroundColor: color }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backText}>← Back</Text></TouchableOpacity>
-                <Text style={styles.headerTitle}>Pending Outpass ({outpasses.length})</Text>
+        <SafeAreaView style={styles.container}>
+            <View style={[styles.header, { backgroundColor: COLORS.white }]}>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity 
+                        onPress={() => {
+                            if (Platform.OS === 'web') {
+                                // @ts-ignore
+                                document.activeElement?.blur?.();
+                            }
+                            navigation.goBack();
+                        }} 
+                        style={styles.backBtn}
+                    >
+                        <Text style={styles.backText}>← Back</Text>
+                    </TouchableOpacity>
+                </View>
+                <Text style={styles.headerTitle}>Pending Outpass Students</Text>
             </View>
-            {loading ? <ActivityIndicator size="large" color={color} style={{ flex: 1 }} /> :
+
+            {loading ? <ActivityIndicator size="large" color={themeColor} style={{ flex: 1 }} /> :
                 <FlatList
-                    data={outpasses} keyExtractor={(item) => item._id}
+                    data={outpasses} 
+                    keyExtractor={(item, index) => item._id || item.id || String(index)}
                     contentContainerStyle={styles.list}
-                    ListEmptyComponent={<Text style={styles.empty}>No pending outpass requests.</Text>}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyIcon}>✨</Text>
+                            <Text style={styles.empty}>No pending outpasses</Text>
+                        </View>
+                    }
                     showsVerticalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                        <View style={[styles.card, item.outpassType === 'emergency' && styles.emergency]}>
-                            {item.outpassType === 'emergency' && <Text style={styles.emergencyTag}>🚨 EMERGENCY</Text>}
-                            <View style={styles.row}>
-                                <Image source={{ uri: getPhoto(item) }} style={styles.avatar} />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.name}>{item.studentId?.name}</Text>
-                                    <Text style={styles.sub}>{item.studentId?.registerNumber} • {item.studentId?.year}</Text>
-                                    <Text style={styles.sub}>{item.studentId?.department}</Text>
+                    renderItem={({ item }) => {
+                        const student = item.studentid || item.studentId || {};
+                        const isEmergency = item.outpassType?.toLowerCase() === 'emergency' || item.outpasstype?.toLowerCase() === 'emergency' || item.type?.toLowerCase() === 'emergency';
+                        
+                        return (
+                            <View style={styles.card}>
+                                <View style={styles.cardBadge}>
+                                    <Text style={styles.cardBadgeText}>{student.registerNumber || item.register_number || item.department || 'N/A'}</Text>
+                                </View>
+                                
+                                <Text style={styles.cardName}>
+                                    {student.name || item.studentName || item.name || 'Unknown'}
+                                </Text>
+                                
+                                <Text style={styles.cardDetails}>
+                                    {student.year ? `Year ${student.year} • ` : ''}
+                                    {item.outpasstype || item.outpassType || 'General'} • 
+                                    Applied on {new Date(item.createdAt || item.outDate || Date.now()).toLocaleDateString()}
+                                </Text>
+                                
+                                {isEmergency && (
+                                    <View style={styles.emergencyBadge}>
+                                        <Text style={styles.emergencyText}>🚨 EMERGENCY</Text>
+                                    </View>
+                                )}
+
+                                <View style={styles.cardFooter}>
+                                    <View style={styles.statusPill}>
+                                        <Text style={styles.statusPillText}>• Pending</Text>
+                                    </View>
+                                    
+                                    <TouchableOpacity 
+                                        style={styles.viewLinkRow}
+                                        onPress={() => {
+                                            if (Platform.OS === 'web') {
+                                                // @ts-ignore
+                                                document.activeElement?.blur?.();
+                                            }
+                                            const sId = item.studentID || item.studentId?._id || item.studentid?._id || item.id || item._id;
+                                            const outpassId = item._id || item.id;
+                                            if (outpassId && role === 'warden') {
+                                                navigation.navigate('WardenStudentView', { outpassId: outpassId });
+                                            } else if (sId && role === 'year-incharge') {
+                                                navigation.navigate('StudentDetails', { studentId: sId });
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.viewLinkText}>View →</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                            <Text style={styles.reasonLabel}>Reason:</Text>
-                            <Text style={styles.reason}>{item.reason}</Text>
-                            <Text style={styles.date}>📅 {new Date(item.fromDate).toLocaleDateString()} → {new Date(item.toDate).toLocaleDateString()}</Text>
-                            <View style={styles.btnRow}>
-                                <TouchableOpacity style={styles.approveBtn} onPress={() => handleAction(item._id, 'approve')}><Text style={styles.approveTxt}>✅ Approve</Text></TouchableOpacity>
-                                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleAction(item._id, 'reject')}><Text style={styles.rejectTxt}>❌ Reject</Text></TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
+                        );
+                    }}
                 />
             }
         </SafeAreaView>
@@ -88,37 +134,38 @@ const OutpassApprovalList = ({ role, endpoint, approveEndpoint, rejectEndpoint, 
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
-    header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-    backText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
-    headerTitle: { color: COLORS.white, fontSize: 17, fontWeight: '800' },
-    list: { padding: 14, gap: 14 },
-    card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, elevation: 2 },
-    emergency: { borderLeftWidth: 4, borderLeftColor: COLORS.danger },
-    emergencyTag: { fontSize: 11, fontWeight: '800', color: COLORS.danger, marginBottom: 8 },
-    row: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 12 },
-    avatar: { width: 52, height: 52, borderRadius: 26 },
-    name: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-    sub: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
-    reasonLabel: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, marginBottom: 4 },
-    reason: { fontSize: 14, color: COLORS.textPrimary, marginBottom: 8, lineHeight: 20 },
-    date: { fontSize: 12, color: COLORS.textLight, fontWeight: '600', marginBottom: 12 },
-    btnRow: { flexDirection: 'row', gap: 10 },
-    approveBtn: { flex: 1, backgroundColor: COLORS.success, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-    approveTxt: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
-    rejectBtn: { flex: 1, backgroundColor: COLORS.danger, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-    rejectTxt: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
-    empty: { textAlign: 'center', color: COLORS.textMuted, marginTop: 60, fontSize: 16 },
+    container: { flex: 1, backgroundColor: '#F8FAFC' },
+    header: { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    backBtn: { backgroundColor: COLORS.white, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 25, borderWidth: 1, borderColor: COLORS.border, ...SHADOWS.small },
+    backText: { color: COLORS.primaryDark, fontSize: 14, fontWeight: '600' },
+    headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.primaryDark },
+    list: { padding: 16, paddingBottom: 40 },
+    card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 20, marginBottom: 16, ...SHADOWS.small, borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
+    cardBadge: { backgroundColor: COLORS.primary, paddingVertical: 8, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
+    cardBadgeText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
+    cardName: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+    cardDetails: { fontSize: 13, color: COLORS.textMuted, marginBottom: 12 },
+    emergencyBadge: { backgroundColor: '#fee2e2', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: '#ef4444', marginBottom: 16 },
+    emergencyText: { color: '#ef4444', fontSize: 10, fontWeight: '700' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 },
+    statusPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, backgroundColor: '#fef3c7', borderColor: '#fcd34d' },
+    statusPillText: { fontSize: 14, fontWeight: '700', color: '#d97706' },
+    viewLinkRow: { flexDirection: 'row', alignItems: 'center' },
+    viewLinkText: { color: COLORS.primaryDark, fontSize: 14, fontWeight: '600' },
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
+    emptyIcon: { fontSize: 48, marginBottom: 16 },
+    empty: { textAlign: 'center', color: COLORS.textMuted, fontSize: 16, fontWeight: '600' },
 });
 
 // Warden pending outpass screen
 export const WardenPendingOutpassScreen = () => (
-    <OutpassApprovalList role="warden" endpoint="/warden/outpass/pending" approveEndpoint="/warden/outpass/:id/approve" rejectEndpoint="/warden/outpass/:id/reject" color="#1a6b4a" />
+    <OutpassApprovalList role="warden" endpoint="/warden/outpass/list" color="#1a6b4a" />
 );
 
 // Year Incharge pending outpass screen
 export const YIPendingOutpassScreen = () => (
-    <OutpassApprovalList role="year-incharge" endpoint="/year-incharge/outpass/pending" approveEndpoint="/year-incharge/outpass/:id/approve" rejectEndpoint="/year-incharge/outpass/:id/reject" color="#7c3aed" />
+    <OutpassApprovalList role="year-incharge" endpoint="/year-incharge/outpass/pending" color="#7c3aed" />
 );
 
 export default OutpassApprovalList;

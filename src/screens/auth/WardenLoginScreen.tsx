@@ -40,30 +40,57 @@ const WardenLoginScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <View style={styles.backgroundLayer} />
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.backText}>← Back</Text>
+                    <Text style={styles.backText}>← Back to Welcome</Text>
                 </TouchableOpacity>
+
                 <View style={styles.card}>
-                    <Text style={styles.emoji}>🏠</Text>
-                    <Text style={styles.title}>Warden Login</Text>
-                    <Text style={styles.subtitle}>Enter your warden credentials</Text>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Warden Email" placeholderTextColor={COLORS.textLight} keyboardType="email-address" autoCapitalize="none" />
+                    <View style={styles.loginHeader}>
+                        <View style={styles.logoCircle}><Text style={{ fontSize: 32 }}>🛡️</Text></View>
+                        <Text style={styles.title}>Warden Login</Text>
+                        <Text style={styles.subtitle}>Enter your warden credentials to access the portal</Text>
                     </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Password</Text>
-                        <View style={styles.row}>
-                            <TextInput style={[styles.input, { flex: 1 }]} value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={COLORS.textLight} secureTextEntry={!showPassword} />
-                            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(v => !v)}>
-                                <Text>{showPassword ? '👁️' : '🔒'}</Text>
-                            </TouchableOpacity>
+
+                    <View style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <View style={styles.inputWrapper}>
+                                <Text style={styles.label}>Warden Email / ID</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    placeholder="Enter your email"
+                                    placeholderTextColor={COLORS.textLight}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                                <Text style={styles.inputIcon}>👤</Text>
+                            </View>
                         </View>
+
+                        <View style={styles.inputGroup}>
+                            <View style={styles.inputWrapper}>
+                                <Text style={styles.label}>Password</Text>
+                                <TextInput
+                                    style={[styles.input, { paddingRight: 50 }]}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    placeholder="Enter your password"
+                                    placeholderTextColor={COLORS.textLight}
+                                    secureTextEntry={!showPassword}
+                                />
+                                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(v => !v)}>
+                                    <Text style={{ fontSize: 18 }}>{showPassword ? '👁️' : '🔒'}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleLogin} disabled={loading}>
+                            {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.btnText}>Sign In</Text>}
+                        </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleLogin} disabled={loading}>
-                        {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.btnText}>Sign In as Warden</Text>}
-                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -71,22 +98,58 @@ const WardenLoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1a6b4a' },
-    scroll: { flexGrow: 1, padding: 20, justifyContent: 'center' },
-    backBtn: { marginBottom: 16 },
-    backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15, fontWeight: '600' },
-    card: { backgroundColor: COLORS.white, borderRadius: 24, padding: 28, ...SHADOWS.large },
-    emoji: { fontSize: 48, textAlign: 'center', marginBottom: 12 },
-    title: { fontSize: 24, fontWeight: '800', color: '#1a6b4a', textAlign: 'center', marginBottom: 6 },
-    subtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 },
-    inputGroup: { marginBottom: 18 },
-    label: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 },
-    input: { backgroundColor: COLORS.background, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: COLORS.textPrimary, borderWidth: 1, borderColor: COLORS.border, ...SHADOWS.small, shadowOpacity: 0.02 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    eyeBtn: { padding: 12 },
-    btn: { backgroundColor: '#1a6b4a', paddingVertical: 16, borderRadius: 16, alignItems: 'center', marginTop: 12, ...SHADOWS.medium },
+    container: { flex: 1, backgroundColor: COLORS.primaryDark },
+    backgroundLayer: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: COLORS.primaryDark,
+        opacity: 0.95
+    },
+    scroll: { flexGrow: 1, padding: 24, justifyContent: 'center' },
+    backBtn: { marginBottom: 24, flexDirection: 'row', alignItems: 'center' },
+    backText: { color: COLORS.white, fontSize: 15, fontWeight: '600', opacity: 0.9 },
+
+    card: { backgroundColor: COLORS.white, borderRadius: 30, paddingVertical: 40, paddingHorizontal: 24, ...SHADOWS.large },
+
+    loginHeader: { alignItems: 'center', marginBottom: 32 },
+    logoCircle: {
+        width: 70, height: 70, borderRadius: 35,
+        backgroundColor: '#475569',
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 16, ...SHADOWS.small
+    },
+    title: { fontSize: 26, fontWeight: '800', color: COLORS.primaryDark, textAlign: 'center', marginBottom: 8 },
+    subtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', paddingHorizontal: 10, lineHeight: 20 },
+
+    form: { gap: 20 },
+    inputGroup: { marginBottom: 4 },
+    label: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 8, marginLeft: 4 },
+    inputWrapper: { position: 'relative' },
+    input: {
+        backgroundColor: COLORS.background,
+        borderRadius: 16,
+        paddingLeft: 16,
+        paddingRight: 45,
+        paddingVertical: 14,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        borderWidth: 1.5,
+        borderColor: COLORS.border
+    },
+    inputIcon: { position: 'absolute', right: 16, top: 18, fontSize: 18, opacity: 0.5 },
+    eyeBtn: { position: 'absolute', right: 12, top: 14, padding: 5 },
+
+    btn: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 18,
+        borderRadius: 16,
+        alignItems: 'center',
+        marginTop: 10,
+        ...SHADOWS.medium
+    },
     btnDisabled: { opacity: 0.7 },
-    btnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+    btnText: { color: COLORS.white, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
 });
+
 
 export default WardenLoginScreen;

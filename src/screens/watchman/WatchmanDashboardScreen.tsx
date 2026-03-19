@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,11 +26,11 @@ const WatchmanDashboardScreen = () => {
     const handleLogout = handleGlobalLogout;
 
     const getPhoto = () => {
-        if (!watchman?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(watchman?.name || 'Watchman')}&background=4a3728&color=fff&size=200`;
+        if (!watchman?.photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(watchman?.name || 'Watchman')}&background=00214D&color=fff&size=200`;
         return watchman.photo.startsWith('http') ? watchman.photo : `${CDN_URL}${watchman.photo}`;
     };
 
-    if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={'#4a3728'} style={{ flex: 1 }} /></SafeAreaView>;
+    if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={'#00214D'} style={{ flex: 1 }} /></SafeAreaView>;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -43,19 +43,22 @@ const WatchmanDashboardScreen = () => {
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.hero}>
-                    <Text style={styles.welcome}>Welcome Back 👋</Text>
-                    <Text style={styles.name}>{watchman?.name || 'Watchman'}</Text>
+                    <View style={styles.badgeContainer}>
+                        <Text style={styles.badgeText}>Welcome Back</Text>
+                    </View>
+                    <Text style={styles.name}>Hello, {watchman?.name || 'Watchman'}! 👋</Text>
+                    <Text style={styles.sub}>Security</Text>
                 </View>
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
                     <View style={styles.grid}>
                         {[
-                            { emoji: '📑', label: 'Outpass List', route: 'WatchmanOutpassList' },
-                            { emoji: '👥', label: 'Student View', route: 'WatchmanStudentView' },
-                            { emoji: '👤', label: 'My Profile', route: 'WatchmanProfile' },
+                            { emoji: '✅', label: 'Outpass List', route: 'WatchmanOutpassList' },
                         ].map((a) => (
                             <TouchableOpacity key={a.route} style={styles.card} onPress={() => navigation.navigate(a.route)}>
-                                <Text style={styles.cardIcon}>{a.emoji}</Text>
+                                <View style={styles.cardIconContainer}>
+                                    <Text style={styles.cardIcon}>{a.emoji}</Text>
+                                </View>
                                 <Text style={styles.cardLabel}>{a.label}</Text>
                             </TouchableOpacity>
                         ))}
@@ -68,20 +71,25 @@ const WatchmanDashboardScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#4a3728', paddingHorizontal: 16, paddingVertical: 14 },
-    headerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
-    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
-    logoutBtn: { backgroundColor: COLORS.danger, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    logoutText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
-    hero: { backgroundColor: '#4a3728', paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4 },
-    welcome: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600', marginBottom: 4 },
-    name: { color: COLORS.white, fontSize: 24, fontWeight: '800', marginBottom: 4 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.9)', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border, zIndex: 10 },
+    headerTitle: { color: COLORS.primaryDark, fontSize: 20, fontWeight: '700' },
+    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)' },
+    logoutBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    logoutText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+    
+    hero: { backgroundColor: '#00214D', margin: 16, borderRadius: 24, padding: 32, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+    badgeContainer: { backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginBottom: 16 },
+    badgeText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
+    name: { color: '#87ceeb', fontSize: 26, fontWeight: '800', marginBottom: 8 },
+    sub: { color: '#87ceeb', fontSize: 15, fontWeight: '500' },
+    
     section: { padding: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    card: { width: '47%', backgroundColor: COLORS.white, borderRadius: 16, padding: 20, alignItems: 'center', elevation: 3 },
-    cardIcon: { fontSize: 32, marginBottom: 8 },
-    cardLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
+    sectionTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 20 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+    card: { flex: 1, minWidth: '45%', backgroundColor: COLORS.white, borderRadius: 20, padding: 24, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+    cardIconContainer: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    cardIcon: { fontSize: 32 },
+    cardLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, textAlign: 'center' },
 });
 
 export default WatchmanDashboardScreen;

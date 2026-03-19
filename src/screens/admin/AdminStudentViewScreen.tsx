@@ -1,5 +1,5 @@
 import React from 'react';
-import StudentListView from '../warden/WardenStudentViewScreen';
+import StudentListView from '../shared/StudentListScreen';
 
 export const AdminStudentViewScreen = () => (
     <StudentListView endpoint="/admin/students" color="#1e293b" />
