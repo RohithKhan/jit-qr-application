@@ -9,13 +9,18 @@ import { COLORS, SHADOWS, CDN_URL } from '../../constants/config';
 const YIStudentViewScreen = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
-    const { outpassId } = route.params;
+    const { outpassId } = route.params || {};
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [data, setData] = useState<any>(null);
 
     useEffect(() => {
+        if (!outpassId) {
+            Toast.show({ type: 'error', text1: 'Invalid Outpass ID' });
+            navigation.goBack();
+            return;
+        }
         fetchDetails();
     }, [outpassId]);
 

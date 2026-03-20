@@ -18,12 +18,35 @@ const AdminDashboardScreen = () => {
 
     const fetchData = async () => {
         try {
-            const [profileRes, statsRes] = await Promise.allSettled([
+            const [profileRes, outpassesRes, staffRes, studentsRes] = await Promise.allSettled([
                 api.get('/admin/profile'),
-                api.get('/admin/stats'),
+                api.get('/admin/outpass/list'),
+                api.get('/admin/staff/list'),
+                api.get('/admin/student/list'),
             ]);
+            
             if (profileRes.status === 'fulfilled') setAdmin(profileRes.value.data.admin || profileRes.value.data);
-            if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+            
+            let outpassesCount = 0;
+            let staffCount = 0;
+            let studentsCount = 0;
+
+            if (outpassesRes.status === 'fulfilled') {
+                const data = outpassesRes.value.data.outpasses || outpassesRes.value.data.filterOutpass || [];
+                outpassesCount = data.length;
+            }
+            if (staffRes.status === 'fulfilled') {
+                staffCount = (staffRes.value.data.staff || []).length;
+            }
+            if (studentsRes.status === 'fulfilled') {
+                studentsCount = (studentsRes.value.data.students || []).length;
+            }
+
+            setStats({
+                students: studentsCount,
+                staff: staffCount,
+                outpasses: outpassesCount,
+            });
         } catch { Toast.show({ type: 'error', text1: 'Failed to fetch data' }); }
         finally { setLoading(false); }
     };

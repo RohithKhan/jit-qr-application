@@ -23,9 +23,15 @@ const StudentListView = ({ endpoint, color }: Props) => {
     const fetchStudents = async () => {
         try {
             const res = await api.get(endpoint);
-            setStudents(res.data.students || res.data || []);
-            setFiltered(res.data.students || res.data || []);
-        } catch { Toast.show({ type: 'error', text1: 'Failed to load students' }); }
+            console.log("API RESPONSE:", res.data);
+            const data = res.data?.students || res.data || [];
+            const list = Array.isArray(data) ? data : [];
+            setStudents(list);
+            setFiltered(list);
+        } catch (error: any) { 
+            console.log("API ERROR:", error.response || error.message);
+            Toast.show({ type: 'error', text1: 'Failed to load students' }); 
+        }
         finally { setLoading(false); }
     };
 

@@ -1,42 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, TextInput, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
-import Toast from 'react-native-toast-message';
-import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SHADOWS, CDN_URL } from '../../constants/config';
-import { handleGlobalLogout } from '../../utils/authHelper';
+import axios from 'axios';
+import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
+import { Picker } from '@react-native-picker/picker';
 
-interface ProfileData {
-    name: string;
-    email: string;
-    phone: string;
-    id: string;
-    photo?: string;
-    gender?: string;
-    year?: string;
-    role: string;
-    handlingyears: string[];
-    handlingbatches: string[];
-    handlingdepartments: string[];
-}
+import { API_URL, COLORS, SHADOWS } from '../../constants/config';
 
 const YearInchargeProfileScreen = () => {
+    const { width } = useWindowDimensions();
+    const isMediumScreen = width >= 768;
     const navigation = useNavigation<any>();
-    const [data, setData] = useState<ProfileData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [imageUri, setImageUri] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState<ProfileData | null>(null);
 
-    // Options for multi-select
-    const yearOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-    const batchOptions = ['2022-2026', '2023-2027', '2024-2028', '2025-2029', '2026-2030'];
-    const deptOptions = [
-        'Computer Science and Engineering', 'Electrical and Electronics Engineering', 'Mechanical Engineering', 'Information Technology', 'Artificial Intelligence and Data Science', 'Master of Business Administration'
-    ];
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [imageUri, setImageUri] = useState<string | null>(null);
+
+    const [form, setForm] = useState({
+        name: 'Rohith',
+        email: '',
+        phone: '',
+        gender: 'Male',
+        handlingYear: '3rd Year',
+        handlingBatch: '2023–2027',
+        handlingDepartment: 'Information Technology',
+    });
+
+    const years = ['1st Year', '2nd Year', '3rd Year'];
+    const batches = ['2022–2026', '2023–2027', '2024–2028', '2025–2029'];
+    const departments = ['Information Technology', 'Electronics and Communication Engineering', 'Computer Science and Engineering'];
 
     useEffect(() => {
         fetchProfile();
@@ -44,36 +38,31 @@ const YearInchargeProfileScreen = () => {
 
     const fetchProfile = async () => {
         try {
-            const res = await api.get('/incharge/profile');
-            const raw = res.data.yearincharge || res.data;
-            const profile: ProfileData = {
-                name: raw.name || '',
-                email: raw.email || '',
-                phone: raw.phone || '',
-                id: raw._id || raw.id || '',
-                photo: raw.photo || '',
-                gender: raw.gender || 'male',
-                year: raw.year || '',
-                role: raw.role || 'Year Incharge',
-                handlingyears: Array.isArray(raw.handlingyears) ? raw.handlingyears : raw.handlingyears ? [raw.handlingyears] : [],
-                handlingbatches: Array.isArray(raw.handlingbatches) ? raw.handlingbatches : raw.handlingbatches ? [raw.handlingbatches] : [],
-                handlingdepartments: Array.isArray(raw.handlingdepartments) ? raw.handlingdepartments : raw.handlingdepartments ? [raw.handlingdepartments] : []
-            };
-            
-            setData(profile);
-            setEditData(JSON.parse(JSON.stringify(profile)));
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/incharge/profile`, { headers: { Authorization: `Bearer ${token}` } });
+            const profile = res.data.yearincharge || res.data;
+            if (profile) {
+                setForm(prev => ({
+                    ...prev,
+                    name: profile.name || prev.name,
+                    email: profile.email || prev.email,
+                    phone: profile.phone || prev.phone,
+                    gender: profile.gender || prev.gender,
+                }));
+            }
         } catch (err) {
-            console.error("Fetch profile error:", err);
-            Toast.show({ type: 'error', text1: 'Failed to load profile' });
+            console.log('Profile fetch error', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleLogout = handleGlobalLogout;
+    const handleLogout = async () => {
+        await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
+        navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    };
 
     const pickImage = async () => {
-        if (!isEditing) return;
         const res = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -83,342 +72,290 @@ const YearInchargeProfileScreen = () => {
         if (!res.canceled) setImageUri(res.assets[0].uri);
     };
 
-    const toggleArrayItem = (field: keyof ProfileData, item: string) => {
-        if (!editData) return;
-        const current = [...(editData[field] as string[])];
-        const index = current.indexOf(item);
-        if (index > -1) {
-            current.splice(index, 1);
-        } else {
-            current.push(item);
-        }
-        setEditData(prev => ({ ...prev!, [field]: current }));
+    const getPhoto = () => {
+        if (imageUri) return imageUri;
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name || 'S')}&background=3b82f6&color=fff&size=200`;
     };
 
     const handleSave = async () => {
-        if (!editData) return;
-        if (editData.handlingyears.length === 0 || editData.handlingbatches.length === 0 || editData.handlingdepartments.length === 0) {
-            Toast.show({ type: 'error', text1: 'Selection Required', text2: 'Please select at least one option for all handling details' });
-            return;
-        }
-
         setSaving(true);
         try {
-            const formData = new FormData();
-
-            if (imageUri) {
-                formData.append('photo', { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
-            }
-
-            formData.append('name', editData.name);
-            formData.append('email', editData.email);
-            formData.append('phone', editData.phone);
-            formData.append('gender', editData.gender || 'male');
-            formData.append('year', editData.year || '');
-            
-            editData.handlingyears.forEach((y: string) => formData.append('handlingyears', y));
-            editData.handlingbatches.forEach((b: string) => formData.append('handlingbatches', b));
-            editData.handlingdepartments.forEach((d: string) => formData.append('handlingdepartments', d));
-
-            const response = await api.put('/incharge/profile/update', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            Toast.show({ type: 'success', text1: 'Profile updated successfully' });
-            setImageUri(null);
-            setIsEditing(false);
-            fetchProfile();
-        } catch (err) {
-            console.error("Update profile error:", err);
-            Toast.show({ type: 'error', text1: 'Failed to update profile' });
+            Toast.show({ type: 'success', text1: 'Profile saved successfully!' });
+        } catch {
+            Toast.show({ type: 'error', text1: 'Failed to save profile' });
         } finally {
             setSaving(false);
         }
     };
 
-    const getPhoto = () => {
-        if (imageUri) return imageUri;
-        const p = data?.photo;
-        if (!p) return `https://ui-avatars.com/api/?name=${encodeURIComponent(data?.name || 'U')}&background=7c3aed&color=fff&size=200`;
-        return p.startsWith('http') ? p : `${CDN_URL}${p}`;
-    };
-
-    const calculateCompletion = () => {
-        if (!data) return 0;
-        const fields = ['name', 'email', 'phone', 'gender', 'photo', 'handlingyears', 'handlingbatches', 'handlingdepartments'];
-        const filled = fields.filter(f => {
-            const val = data[f as keyof ProfileData];
-            if (Array.isArray(val)) return val.length > 0;
-            return val && val !== 'N/A' && val !== 'undefined' && val !== '';
-        });
-        return Math.round((filled.length / fields.length) * 100);
-    };
-
-    if (loading) return (
-        <SafeAreaView style={styles.container}>
-            <ActivityIndicator size="large" color="#7c3aed" style={{ flex: 1 }} />
-        </SafeAreaView>
+    const SelectablePill = ({ label, selected, onPress }: any) => (
+        <TouchableOpacity
+            onPress={onPress}
+            style={[styles.pill, selected && styles.pillSelected]}
+            activeOpacity={0.7}
+        >
+            <Text style={[styles.pillText, selected && styles.pillTextSelected]}>{label}</Text>
+        </TouchableOpacity>
     );
 
-    const completion = calculateCompletion();
+    const SelectableTag = ({ label, selected, onPress }: any) => (
+        <TouchableOpacity
+            onPress={onPress}
+            style={[styles.tag, selected && styles.tagSelected]}
+            activeOpacity={0.7}
+        >
+            <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{label}</Text>
+        </TouchableOpacity>
+    );
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#5b21b6' }}>
-            <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-                        <Text style={styles.headerBtnText}>← Back</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Incharge Profile</Text>
-                    <View style={{ width: 80 }} />
-                </View>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Text style={styles.backText}>← Dashboard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                    <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
+            </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                    <View style={styles.topSection}>
-                        <View style={styles.completionCard}>
-                            <View style={styles.completionHeader}>
-                                <Text style={styles.completionTitle}>Profile Completion</Text>
-                                <Text style={styles.completionPercent}>{completion}%</Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <View style={[styles.progressBarFill, { width: `${completion}%`, backgroundColor: completion === 100 ? COLORS.success : '#a78bfa' }]} />
-                            </View>
-                            <Text style={styles.completionSub}>
-                                {completion === 100 ? "Perfect! Your profile is fully complete." : "Please complete all fields for a professional profile."}
-                            </Text>
-                        </View>
-
-                        <View style={styles.hero}>
-                            <TouchableOpacity onPress={pickImage} disabled={!isEditing} style={styles.avatarWrapper}>
-                                <Image source={{ uri: getPhoto() }} style={styles.avatar} />
-                                {isEditing && <View style={styles.editBadge}><Text style={{ fontSize: 12 }}>📷</Text></View>}
-                            </TouchableOpacity>
-                            <Text style={styles.name}>{data?.name}</Text>
-                            <View style={styles.badge}><Text style={styles.badgeText}>{data?.role}</Text></View>
-                        </View>
+            <ScrollView
+                style={{ flex: 5 }}
+                contentContainerStyle={[styles.scrollContent, isMediumScreen && styles.scrollContentLarge]}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="handled"
+            >
+                {loading ? (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color="#3b82f6" />
                     </View>
+                ) : (
+                    <View style={[styles.layoutRow, !isMediumScreen && styles.layoutCol]}>
 
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Personal Information</Text>
-                        <Text style={styles.cardSubText}>Your basic profile and contact details.</Text>
+                        {/* Profile Card Left */}
+                        <View style={[styles.card, styles.leftCard, isMediumScreen && { flex: 1, marginRight: 24 }]}>
+                            <View style={styles.profileHeader}>
+                                <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
+                                    <Image source={{ uri: getPhoto() }} style={styles.avatar} />
+                                    <View style={styles.editIconBadge}>
+                                        <Text style={{ fontSize: 16 }}>✏️</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <Text style={styles.profileName}>{form.name}</Text>
+                                <Text style={styles.profileRole}>Year Incharge</Text>
+                                <TouchableOpacity style={styles.editProfileBtn}>
+                                    <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                        {!isEditing ? (
-                            <>
-                                <InfoRow label="Full Name" value={data?.name} emoji="👤" />
-                                <InfoRow label="Email Address" value={data?.email} emoji="📧" />
-                                <InfoRow label="Phone Number" value={data?.phone} emoji="📱" />
-                                <InfoRow label="Gender" value={data?.gender ? (data.gender.charAt(0).toUpperCase() + data.gender.slice(1)) : 'Not specified'} emoji="🚻" />
-                            </>
-                        ) : (
-                            <View style={{ gap: 16, marginTop: 10 }}>
-                                <EditField label="Full Name" value={editData?.name} onChange={(t: string) => setEditData(prev => ({ ...prev!, name: t }))} />
-                                <EditField label="Email" value={editData?.email} onChange={(t: string) => setEditData(prev => ({ ...prev!, email: t }))} keyboardType="email-address" />
-                                <EditField label="Phone" value={editData?.phone} onChange={(t: string) => setEditData(prev => ({ ...prev!, phone: t }))} keyboardType="phone-pad" />
-                                
-                                <View>
-                                    <Text style={styles.editLabel}>Gender</Text>
-                                    <View style={styles.pickerContainer}>
-                                        {['male', 'female'].map((g: string) => (
-                                            <TouchableOpacity 
-                                                key={g}
-                                                style={[styles.pickerItem, editData?.gender?.toLowerCase() === g && styles.pickerItemActive]}
-                                                onPress={() => setEditData(prev => ({ ...prev!, gender: g }))}
-                                            >
-                                                <Text style={[styles.pickerText, editData?.gender?.toLowerCase() === g && styles.pickerTextActive]}>{g.charAt(0).toUpperCase() + g.slice(1)}</Text>
-                                            </TouchableOpacity>
-                                        ))}
+                            <View style={styles.quickInfoSection}>
+                                <View style={styles.quickInfoRow}>
+                                    <Text style={styles.quickInfoIcon}>📧</Text>
+                                    <View>
+                                        <Text style={styles.quickInfoLabel}>Email</Text>
+                                        <Text style={styles.quickInfoValue}>{form.email || 'Not provided'}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.quickInfoRow}>
+                                    <Text style={styles.quickInfoIcon}>📱</Text>
+                                    <View>
+                                        <Text style={styles.quickInfoLabel}>Phone</Text>
+                                        <Text style={styles.quickInfoValue}>{form.phone || 'Not provided'}</Text>
                                     </View>
                                 </View>
                             </View>
-                        )}
-                    </View>
+                        </View>
 
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Handling Details</Text>
-                        <Text style={styles.cardSubText}>Manage years, batches, and departments.</Text>
-                        
-                        <View style={{ marginTop: 10, gap: 20 }}>
-                            <MultiSelectSection 
-                                label="Handling Years" 
-                                selected={isEditing ? editData!.handlingyears : data!.handlingyears} 
-                                options={yearOptions}
-                                isEditing={isEditing}
-                                onToggle={(item: string) => toggleArrayItem('handlingyears', item)}
-                                emoji="📅"
-                            />
-                            <MultiSelectSection 
-                                label="Handling Batches" 
-                                selected={isEditing ? editData!.handlingbatches : data!.handlingbatches} 
-                                options={batchOptions}
-                                isEditing={isEditing}
-                                onToggle={(item: string) => toggleArrayItem('handlingbatches', item)}
-                                emoji="🎓"
-                            />
-                            <MultiSelectSection 
-                                label="Handling Departments" 
-                                selected={isEditing ? editData!.handlingdepartments : data!.handlingdepartments} 
-                                options={deptOptions}
-                                isEditing={isEditing}
-                                onToggle={(item: string) => toggleArrayItem('handlingdepartments', item)}
-                                emoji="🏛️"
-                            />
+                        {/* Form Card Right */}
+                        <View style={[styles.card, styles.rightCard, isMediumScreen && { flex: 2.2 }]}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Personal Information</Text>
+                                <Text style={styles.sectionSubtitle}>Manage your personal details.</Text>
+                            </View>
+
+                            <View style={[styles.formGrid, isMediumScreen && styles.formGridLarge]}>
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Full Name</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={form.name}
+                                        onChangeText={val => setForm({ ...form, name: val })}
+                                        placeholder="E.g. Rohith"
+                                    />
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Email Address</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={form.email}
+                                        onChangeText={val => setForm({ ...form, email: val })}
+                                        placeholder="admin@college.edu"
+                                        keyboardType="email-address"
+                                    />
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Phone Number</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={form.phone}
+                                        onChangeText={val => setForm({ ...form, phone: val })}
+                                        placeholder="+91 9876543210"
+                                        keyboardType="phone-pad"
+                                    />
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Gender</Text>
+                                    <View style={styles.pickerWrapper}>
+                                        <Picker
+                                            selectedValue={form.gender}
+                                            onValueChange={(val) => setForm({ ...form, gender: val })}
+                                            style={styles.picker}
+                                        >
+                                            <Picker.Item label="Male" value="Male" />
+                                            <Picker.Item label="Female" value="Female" />
+                                            <Picker.Item label="Other" value="Other" />
+                                        </Picker>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.divider} />
+
+                            <Text style={styles.sectionTitleSmall}>Handling Year</Text>
+                            <View style={styles.chipsContainer}>
+                                {years.map(yr => (
+                                    <SelectablePill
+                                        key={yr}
+                                        label={yr}
+                                        selected={form.handlingYear === yr}
+                                        onPress={() => setForm({ ...form, handlingYear: yr })}
+                                    />
+                                ))}
+                            </View>
+
+                            <Text style={styles.sectionTitleSmall}>Handling Batch</Text>
+                            <View style={styles.chipsContainer}>
+                                {batches.map(bt => (
+                                    <SelectableTag
+                                        key={bt}
+                                        label={bt}
+                                        selected={form.handlingBatch === bt}
+                                        onPress={() => setForm({ ...form, handlingBatch: bt })}
+                                    />
+                                ))}
+                            </View>
+
+                            <Text style={styles.sectionTitleSmall}>Handling Department</Text>
+                            <View style={styles.chipsContainer}>
+                                {departments.map(dept => (
+                                    <SelectablePill
+                                        key={dept}
+                                        label={dept}
+                                        selected={form.handlingDepartment === dept}
+                                        onPress={() => setForm({ ...form, handlingDepartment: dept })}
+                                    />
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.saveBtn}
+                                onPress={handleSave}
+                                disabled={saving}
+                            >
+                                <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+                            </TouchableOpacity>
+
                         </View>
                     </View>
-
-                    <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-                        {!isEditing ? (
-                            <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
-                                <Text style={styles.editBtnText}>Edit Profile</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <View style={{ gap: 12 }}>
-                                <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-                                    {saving && <ActivityIndicator animating={saving} size="small" color={COLORS.white} style={{ position: 'absolute', left: 20 }} />}
-                                    <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setIsEditing(false); setEditData(JSON.parse(JSON.stringify(data))); setImageUri(null); }}>
-                                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-
-                        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                            <Text style={styles.logoutBtnText}>Sign Out</Text>
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </View>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
 
-const InfoRow = ({ label, value, emoji }: any) => (
-    <View style={styles.infoRow}>
-        <View style={styles.infoIconBg}><Text style={{ fontSize: 18 }}>{emoji}</Text></View>
-        <View style={{ flex: 1 }}>
-            <Text style={styles.infoLabel}>{label}</Text>
-            <Text style={styles.infoValue}>{value || 'N/A'}</Text>
-        </View>
-    </View>
-);
-
-const EditField = ({ label, value, onChange, keyboardType = 'default' }: any) => (
-    <View>
-        <Text style={styles.editLabel}>{label}</Text>
-        <TextInput
-            style={styles.input}
-            value={value}
-            onChangeText={onChange}
-            placeholder={`Enter ${label}`}
-            keyboardType={keyboardType}
-            placeholderTextColor={COLORS.textLight}
-        />
-    </View>
-);
-
-const MultiSelectSection = ({ label, selected, options, isEditing, onToggle, emoji }: any) => (
-    <View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Text style={{ fontSize: 18 }}>{emoji}</Text>
-            <Text style={styles.editLabel}>{label}</Text>
-        </View>
-        <View style={styles.chipContainer}>
-            {(isEditing ? options : selected).map((item: string) => {
-                const isActive = selected.includes(item);
-                if (!isEditing && !isActive) return null;
-                return (
-                    <TouchableOpacity 
-                        key={item} 
-                        disabled={!isEditing}
-                        onPress={() => onToggle(item)}
-                        style={[
-                            styles.chip, 
-                            isActive && styles.chipActive,
-                            !isEditing && { paddingRight: 16 }
-                        ]}
-                    >
-                        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{item}</Text>
-                        {isEditing && (
-                            <View style={[styles.chipIndicator, isActive && styles.chipIndicatorActive]}>
-                                <Text style={{ fontSize: 10, color: isActive ? COLORS.white : '#94a3b8' }}>{isActive ? '✓' : '+'}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                );
-            })}
-        </View>
-    </View>
-);
-
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    safeArea: { flex: 1, backgroundColor: '#f8fafc' },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#5b21b6'
+        paddingHorizontal: 24,
+        paddingVertical: 18,
+        backgroundColor: '#ffffff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9'
     },
-    headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, width: 80 },
-    headerBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
-    headerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
+    backBtn: { padding: 8, marginLeft: -8 },
+    backText: { color: '#64748b', fontSize: 16, fontWeight: '600' },
+    logoutBtn: { backgroundColor: '#fee2e2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+    logoutText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
 
-    topSection: { backgroundColor: '#5b21b6', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 20, ...SHADOWS.medium },
+    scrollContent: { padding: 16, paddingBottom: 120 },
+    scrollContentLarge: { padding: 40, paddingBottom: 120 },
 
-    completionCard: { margin: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    completionTitle: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
-    completionPercent: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
-    progressBarBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-    progressBarFill: { height: '100%', borderRadius: 4 },
-    completionSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+    layoutRow: { flexDirection: 'row', width: '100%', maxWidth: 1000, alignSelf: 'center' },
+    layoutCol: { flexDirection: 'column', width: '100%', alignSelf: 'center' },
 
-    hero: { padding: 10, alignItems: 'center' },
-    avatarWrapper: { position: 'relative', marginBottom: 16 },
-    avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)' },
-    editBadge: { position: 'absolute', bottom: 4, right: 4, backgroundColor: COLORS.white, borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center', ...SHADOWS.small },
-    name: { color: COLORS.white, fontSize: 24, fontWeight: '800', marginBottom: 6 },
-    badge: { backgroundColor: '#7c3aed', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-    badgeText: { color: COLORS.white, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+    card: {
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        ...Platform.select({
+            web: { boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02)' } as any,
+            default: {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 4
+            }
+        }),
+        marginBottom: 24,
+    },
+    leftCard: { alignItems: 'center', paddingVertical: 36 },
+    rightCard: { padding: 32 },
 
-    card: { margin: 16, backgroundColor: COLORS.white, borderRadius: 24, padding: 20, ...SHADOWS.medium, marginTop: -20 },
-    cardTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
-    cardSubText: { fontSize: 12, color: COLORS.textMuted, marginBottom: 16 },
+    profileHeader: { alignItems: 'center', marginBottom: 32 },
+    avatarContainer: { position: 'relative', marginBottom: 20 },
+    avatar: { width: 140, height: 140, borderRadius: 70, borderWidth: 4, borderColor: '#eff6ff' },
+    editIconBadge: { position: 'absolute', bottom: 4, right: 8, backgroundColor: '#ffffff', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, elevation: 2 },
+    profileName: { fontSize: 24, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+    profileRole: { fontSize: 16, color: '#64748b', fontWeight: '500', marginBottom: 20 },
+    editProfileBtn: { backgroundColor: '#eff6ff', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
+    editProfileBtnText: { color: '#3b82f6', fontWeight: '700', fontSize: 14 },
 
-    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingVertical: 12 },
-    infoIconBg: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#f5f3ff', justifyContent: 'center', alignItems: 'center' },
-    infoLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', marginBottom: 2 },
-    infoValue: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '700' },
+    quickInfoSection: { width: '100%', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 24, gap: 20 },
+    quickInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    quickInfoIcon: { fontSize: 22, width: 32, textAlign: 'center' },
+    quickInfoLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 2 },
+    quickInfoValue: { fontSize: 14, color: '#334155', fontWeight: '600' },
 
-    editLabel: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 0, marginLeft: 4 },
-    input: { backgroundColor: COLORS.background, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary, borderWidth: 1, borderColor: COLORS.border },
+    sectionHeader: { marginBottom: 32 },
+    sectionTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
+    sectionSubtitle: { fontSize: 15, color: '#64748b' },
 
-    pickerContainer: { flexDirection: 'row', gap: 10, marginTop: 8 },
-    pickerItem: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.white },
-    pickerItemActive: { borderColor: '#7c3aed', backgroundColor: '#f5f3ff' },
-    pickerText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
-    pickerTextActive: { color: '#7c3aed' },
+    formGrid: { flexWrap: 'wrap', flexDirection: 'column', gap: 20, marginBottom: 32, width: '100%' },
+    formGridLarge: { flexDirection: 'row', justifyContent: 'space-between' },
+    inputGroup: { flex: 1, minWidth: '100%', width: '100%' },
+    label: { fontSize: 13, fontWeight: '700', color: '#475569', marginBottom: 8 },
+    input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#0f172a' },
+    pickerWrapper: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, overflow: 'hidden' },
+    picker: { height: 50, color: '#0f172a', ...Platform.select({ web: { outlineWidth: 0, borderWidth: 0, backgroundColor: 'transparent' } as any, default: {} }) },
 
-    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingLeft: 16, paddingRight: 8, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.white },
-    chipActive: { borderColor: '#7c3aed', backgroundColor: '#f5f3ff' },
-    chipText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-    chipTextActive: { color: '#7c3aed' },
-    chipIndicator: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#f1f5f9', marginLeft: 8, justifyContent: 'center', alignItems: 'center' },
-    chipIndicatorActive: { backgroundColor: '#7c3aed' },
+    divider: { height: 1, backgroundColor: '#f1f5f9', width: '100%', marginBottom: 32 },
 
-    editBtn: { backgroundColor: '#7c3aed', paddingVertical: 15, borderRadius: 16, alignItems: 'center', ...SHADOWS.small },
-    editBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+    sectionTitleSmall: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 16 },
+    chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 32 },
 
-    saveBtn: { backgroundColor: COLORS.success, paddingVertical: 15, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-    saveBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+    pill: { backgroundColor: '#f1f5f9', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: 'transparent' },
+    pillSelected: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
+    pillText: { fontSize: 14, color: '#64748b', fontWeight: '600' },
+    pillTextSelected: { color: '#2563eb', fontWeight: '700' },
 
-    cancelBtn: { paddingVertical: 12, alignItems: 'center' },
-    cancelBtnText: { color: COLORS.textMuted, fontSize: 15, fontWeight: '600' },
+    tag: { backgroundColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'transparent' },
+    tagSelected: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
+    tagText: { fontSize: 14, color: '#64748b', fontWeight: '600' },
+    tagTextSelected: { color: '#2563eb', fontWeight: '700' },
 
-    logoutBtn: { marginTop: 20, paddingVertical: 15, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#fee2e2' },
-    logoutBtnText: { color: COLORS.danger, fontSize: 15, fontWeight: '700' },
+    saveBtn: { backgroundColor: '#3b82f6', paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 16, ...Platform.select({ web: { boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.39)' } as any, default: {} }) },
+    saveBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 });
 
 export default YearInchargeProfileScreen;

@@ -31,20 +31,27 @@ api.interceptors.request.use(
 api.interceptors.response.use(
             (response) => response,
     async (error) => {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+
+        // Check for auth failure: proper 401/403 OR backend returning 500 with JWT error
+        const isJwtError =
+            status === 401 ||
+            status === 403 ||
+            (data?.error && typeof data.error === 'string' && data.error.toLowerCase().includes('jwt')) ||
+            (data?.message && typeof data.message === 'string' &&
+                (data.message.toLowerCase().includes('invalid token') ||
+                 data.message.toLowerCase().includes('token expired') ||
+                 data.message.toLowerCase().includes('jwt expired') ||
+                 data.message.toLowerCase().includes('unauthorized')));
+
+        if (isJwtError) {
             await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-            if (navigationRef) {
+            if (navigationRef?.isReady()) {
                 navigationRef.reset({ index: 0, routes: [{ name: 'Auth' }] });
             }
-        } else if (error.response?.data?.message) {
-            const message = error.response.data.message.toLowerCase();
-            if (message.includes('invalid token') || message.includes('token expired') || message.includes('unauthorized')) {
-                await AsyncStorage.multiRemove(['token', 'isLoggedIn', 'userType']);
-                if (navigationRef) {
-                    navigationRef.reset({ index: 0, routes: [{ name: 'Auth' }] });
-                } 
-            }
         }
+
         return Promise.reject(error);
     }
 );

@@ -1,223 +1,369 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    TextInput, ActivityIndicator, Image, Alert
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import api from '../../services/api';
-import { COLORS, SHADOWS } from '../../constants/config';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { API_URL, CDN_URL, COLORS, SHADOWS } from '../../constants/config';
 
 const WardenEmergencyOutpassScreen = () => {
     const navigation = useNavigation<any>();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
-        registerNumber: '',
-        reason: '',
-        fromDate: new Date(),
-        toDate: new Date()
-    });
     
-    const [showFromPicker, setShowFromPicker] = useState(false);
-    const [showToPicker, setShowToPicker] = useState(false);
-    const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
-    const [activeDateField, setActiveDateField] = useState<'from' | 'to'>('from');
+    // Search State
+    const [searchRoom, setSearchRoom] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [students, setStudents] = useState<any[]>([]);
+    
+    // Apply State
+    const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+    const [reason, setReason] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleChange = (name: string, value: string) => {
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleDateChange = (event: any, selectedDate?: Date) => {
-        if (activeDateField === 'from') {
-            setShowFromPicker(Platform.OS === 'ios');
-            if (selectedDate) {
-                setFormData(prev => ({ ...prev, fromDate: selectedDate }));
-            }
-        } else {
-            setShowToPicker(Platform.OS === 'ios');
-            if (selectedDate) {
-                setFormData(prev => ({ ...prev, toDate: selectedDate }));
-            }
-        }
-    };
-
-    const showPicker = (field: 'from' | 'to', mode: 'date' | 'time') => {
-        setActiveDateField(field);
-        setPickerMode(mode);
-        if (field === 'from') setShowFromPicker(true);
-        else setShowToPicker(true);
-    };
-
-    const handleSubmit = async () => {
-        if (!formData.registerNumber.trim()) {
-            Toast.show({ type: 'error', text1: 'Register Number is required' });
-            return;
-        }
-        if (!formData.reason.trim()) {
-            Toast.show({ type: 'error', text1: 'Reason is required' });
+    // 1. Search students by room
+    const handleSearch = async () => {
+        if (!searchRoom.trim()) {
+            Toast.show({ type: 'info', text1: 'Please enter a room number' });
             return;
         }
 
-        setIsSubmitting(true);
+        setIsSearching(true);
+        setSelectedStudent(null);
+        setReason('');
+        
         try {
-            await api.post('/warden/outpass/emergency', {
-                registerNumber: formData.registerNumber,
-                reason: formData.reason,
-                fromDate: formData.fromDate.toISOString(),
-                toDate: formData.toDate.toISOString(),
-                outpasstype: 'Emergency'
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/warden/students/roomno/${searchRoom.trim()}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-
-            Toast.show({ type: 'success', text1: 'Emergency outpass generated successfully' });
-            setTimeout(() => navigation.goBack(), 2000);
+            const roomStudents = res.data.students || [];
+            
+            setStudents(roomStudents);
+            
+            if (roomStudents.length === 0) {
+                Toast.show({ type: 'info', text1: `No students found in room ${searchRoom}` });
+            }
         } catch (error: any) {
-            console.error('Error generating emergency outpass:', error);
-            Toast.show({ 
-                type: 'error', 
-                text1: 'Failed to generate outpass',
-                text2: error.response?.data?.message || 'Check if the student register number is valid'
-            });
+            const msg = error.response?.data?.message || 'Failed to fetch students. Check room number.';
+            Toast.show({ type: 'error', text1: 'Search Failed', text2: msg });
+            setStudents([]);
         } finally {
-            setIsSubmitting(false);
+            setIsSearching(false);
         }
     };
 
-    const formatDate = (date: Date) => {
-        return date.toLocaleString();
+    // 2. Apply Emergency Outpass
+    const handleApply = async () => {
+        if (!selectedStudent) {
+            Toast.show({ type: 'info', text1: 'Please select a student first' });
+            return;
+        }
+        if (!reason.trim()) {
+            Toast.show({ type: 'info', text1: 'Please provide a reason' });
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const studentId = selectedStudent._id || selectedStudent.id;
+            
+            await axios.post(
+                `${API_URL}/warden/outpass/apply/${studentId}`,
+                { reason: reason.trim() },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            Toast.show({ type: 'success', text1: 'Emergency outpass created and approved!' });
+            
+            // Go back to the dashboard or history list
+            navigation.goBack();
+        } catch (error: any) {
+            const msg = error.response?.data?.message || 'Failed to create emergency outpass';
+            Toast.show({ type: 'error', text1: 'Apply Failed', text2: msg });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const renderAvatar = (student: any) => {
+        if (student.photo) {
+            const uri = student.photo.startsWith('http') ? student.photo : `${CDN_URL}${student.photo}`;
+            return <Image source={{ uri }} style={styles.avatar} />;
+        }
+        return (
+            <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarLetter}>{student.name.charAt(0).toUpperCase()}</Text>
+            </View>
+        );
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView 
-                style={{ flex: 1 }} 
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Text style={styles.backText}>← Back</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Emergency Outpass</Text>
-                    <View style={{ width: 60 }} />
+        <SafeAreaView style={styles.safeArea}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+                    <Text style={styles.headerBtnText}>← Back</Text>
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Emergency Outpass</Text>
+                <View style={{ width: 60 }} />
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                
+                <View style={styles.headerInfo}>
+                    <Text style={styles.headerInfoTitle}>🚨 Apply Emergency Outpass</Text>
+                    <Text style={styles.headerInfoSub}>For critical issues. Outpass is instantly approved.</Text>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.formCard}>
-                        <View style={styles.alertBox}>
-                            <Text style={styles.alertIcon}>🚨</Text>
-                            <Text style={styles.alertText}>
-                                This form allows Wardens to instantly approve an emergency outpass for a student without the student needing to apply first.
-                            </Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Student Register Number *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="e.g. 711326ITXXXX"
-                                value={formData.registerNumber}
-                                onChangeText={(text) => handleChange('registerNumber', text)}
-                                autoCapitalize="characters"
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>From Date & Time *</Text>
-                            <View style={styles.dateTimeRow}>
-                                <TouchableOpacity style={styles.dateTimeBtn} onPress={() => showPicker('from', 'date')}>
-                                    <Text style={styles.dateTimeText}>{formData.fromDate.toLocaleDateString()}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.dateTimeBtn} onPress={() => showPicker('from', 'time')}>
-                                    <Text style={styles.dateTimeText}>{formData.fromDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                                </TouchableOpacity>
-                            </View>
-                            {showFromPicker && (
-                                <DateTimePicker
-                                    value={formData.fromDate}
-                                    mode={pickerMode}
-                                    is24Hour={false}
-                                    display="default"
-                                    onChange={handleDateChange}
-                                />
-                            )}
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>To Date & Time *</Text>
-                            <View style={styles.dateTimeRow}>
-                                <TouchableOpacity style={styles.dateTimeBtn} onPress={() => showPicker('to', 'date')}>
-                                    <Text style={styles.dateTimeText}>{formData.toDate.toLocaleDateString()}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.dateTimeBtn} onPress={() => showPicker('to', 'time')}>
-                                    <Text style={styles.dateTimeText}>{formData.toDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                                </TouchableOpacity>
-                            </View>
-                            {showToPicker && (
-                                <DateTimePicker
-                                    value={formData.toDate}
-                                    mode={pickerMode}
-                                    is24Hour={false}
-                                    display="default"
-                                    onChange={handleDateChange}
-                                />
-                            )}
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Reason for Emergency *</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Describe the medical or urgent situation..."
-                                value={formData.reason}
-                                onChangeText={(text) => handleChange('reason', text)}
-                                multiline
-                                numberOfLines={4}
-                                textAlignVertical="top"
-                            />
-                        </View>
-
+                {/* Step 1: Search */}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>1. Search Student Room</Text>
+                    <View style={styles.searchRow}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Room Number (e.g., 101)"
+                            value={searchRoom}
+                            onChangeText={setSearchRoom}
+                            placeholderTextColor={COLORS.textLight}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
+                        />
                         <TouchableOpacity 
-                            style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]} 
-                            onPress={handleSubmit}
-                            disabled={isSubmitting}
+                            style={[styles.searchBtn, isSearching && { opacity: 0.7 }]} 
+                            onPress={handleSearch}
+                            disabled={isSearching}
                         >
-                            {isSubmitting ? (
-                                <ActivityIndicator color={COLORS.white} />
+                            {isSearching ? (
+                                <ActivityIndicator color={COLORS.white} size="small" />
                             ) : (
-                                <Text style={styles.submitBtnText}>Generate Emergency Outpass</Text>
+                                <Text style={styles.searchBtnText}>Search</Text>
                             )}
                         </TouchableOpacity>
                     </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                </View>
+
+                {/* Step 2: Select Student */}
+                {students.length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>2. Select Student from Room {searchRoom}</Text>
+                        
+                        {students.map((student) => {
+                            const isSelected = selectedStudent?._id === student._id;
+                            return (
+                                <TouchableOpacity
+                                    key={student._id}
+                                    style={[styles.studentCard, isSelected && styles.studentCardSelected]}
+                                    onPress={() => setSelectedStudent(student)}
+                                    activeOpacity={0.7}
+                                >
+                                    {renderAvatar(student)}
+                                    <View style={styles.studentInfo}>
+                                        <Text style={styles.studentName}>{student.name}</Text>
+                                        <Text style={styles.studentReg}>{student.registerNumber || student.register_number}</Text>
+                                        <View style={styles.badge}>
+                                            <Text style={styles.badgeText}>{student.department} - Year {student.year}</Text>
+                                        </View>
+                                    </View>
+                                    {/* Selected Checkmark */}
+                                    <View style={[styles.radio, isSelected && styles.radioActive]}>
+                                        {isSelected && <View style={styles.radioInner} />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* Step 3: Apply */}
+                {selectedStudent && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>3. Emergency Details</Text>
+                        
+                        <View style={styles.selectedSummary}>
+                            <Text style={styles.summaryText}>
+                                <Text style={{ fontWeight: 'bold' }}>Selected: </Text>
+                                {selectedStudent.name} ({selectedStudent.registerNumber || selectedStudent.register_number})
+                            </Text>
+                        </View>
+
+                        <Text style={styles.label}>Reason for Emergency <Text style={{ color: COLORS.danger }}>*</Text></Text>
+                        <TextInput
+                            style={styles.textArea}
+                            placeholder="Describe the medical emergency or critical situation..."
+                            value={reason}
+                            onChangeText={setReason}
+                            multiline
+                            numberOfLines={4}
+                            textAlignVertical="top"
+                            placeholderTextColor={COLORS.textLight}
+                        />
+
+                        <View style={styles.alertBox}>
+                            <Text style={styles.alertText}>
+                                <Text style={{ fontWeight: 'bold' }}>Note: </Text>
+                                This will create an outpass of type <Text style={{ fontStyle: 'italic' }}>HostelEmergency</Text> and automatically set the status to <Text style={{ fontWeight: 'bold' }}>Approved</Text> across all levels.
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity 
+                            style={[styles.applyBtn, submitting && { opacity: 0.7 }]}
+                            onPress={handleApply}
+                            disabled={submitting}
+                        >
+                            {submitting ? (
+                                <ActivityIndicator color={COLORS.white} />
+                            ) : (
+                                <Text style={styles.applyBtnText}>Create & Approve Emergency Outpass</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+            </ScrollView>
         </SafeAreaView>
     );
 };
 
+/* ─── Styles ─── */
+
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8FAFC' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#1e3a8a' },
-    backBtn: { backgroundColor: COLORS.white, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-    backText: { color: '#1e3a8a', fontWeight: '600', fontSize: 13 },
-    headerTitle: { color: COLORS.white, fontSize: 18, fontWeight: '700' },
+    safeArea: { flex: 1, backgroundColor: COLORS.background },
+    
+    // Header
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        zIndex: 10,
+    },
+    headerBtn: { width: 70, paddingVertical: 5 },
+    headerBtnText: { color: COLORS.primaryDark, fontSize: 16, fontWeight: '600' },
+    headerTitle: { color: COLORS.primaryDark, fontSize: 18, fontWeight: '700' },
+
     scrollContent: { padding: 16, paddingBottom: 40 },
+
+    headerInfo: { marginBottom: 20 },
+    headerInfoTitle: { fontSize: 22, fontWeight: '800', color: COLORS.danger, marginBottom: 8 },
+    headerInfoSub: { fontSize: 14, color: COLORS.textMuted },
+
+    // Card general
+    card: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 18,
+        marginBottom: 20,
+        ...SHADOWS.small,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.02)'
+    },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
+
+    // Search Step
+    searchRow: { flexDirection: 'row', gap: 12 },
+    searchInput: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+    },
+    searchBtn: {
+        backgroundColor: COLORS.primary,
+        borderRadius: 12,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.small,
+    },
+    searchBtnText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+
+    // Student list step
+    studentCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 12,
+        marginBottom: 10,
+        backgroundColor: COLORS.white,
+    },
+    studentCardSelected: {
+        borderColor: COLORS.danger,
+        backgroundColor: '#fef2f2',
+    },
+    avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.border },
+    avatarPlaceholder: {
+        width: 48, height: 48, borderRadius: 24, 
+        backgroundColor: COLORS.border,
+        justifyContent: 'center', alignItems: 'center'
+    },
+    avatarLetter: { fontSize: 18, fontWeight: '700', color: COLORS.textMuted },
+    studentInfo: { flex: 1, marginLeft: 14 },
+    studentName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2 },
+    studentReg: { fontSize: 13, color: COLORS.textMuted, marginBottom: 6 },
+    badge: {
+        alignSelf: 'flex-start',
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 8, paddingVertical: 2,
+        borderRadius: 6,
+    },
+    badgeText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
     
-    formCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 24, ...SHADOWS.small, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+    // Custom Radio Button
+    radio: {
+        width: 22, height: 22, borderRadius: 11,
+        borderWidth: 2, borderColor: COLORS.border,
+        justifyContent: 'center', alignItems: 'center',
+        marginLeft: 10
+    },
+    radioActive: { borderColor: COLORS.danger },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.danger },
+
+    // Apply Step
+    selectedSummary: {
+        backgroundColor: '#fef2f2',
+        borderWidth: 1, borderColor: COLORS.danger, borderStyle: 'dashed',
+        padding: 12, borderRadius: 8, marginBottom: 20
+    },
+    summaryText: { color: '#991b1b', fontSize: 14 },
     
-    alertBox: { flexDirection: 'row', backgroundColor: '#fee2e2', padding: 16, borderRadius: 12, marginBottom: 24, borderWidth: 1, borderColor: '#fca5a5', alignItems: 'center', gap: 12 },
-    alertIcon: { fontSize: 24 },
-    alertText: { flex: 1, color: '#991b1b', fontSize: 13, lineHeight: 20 },
+    label: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 },
+    textArea: {
+        backgroundColor: COLORS.background,
+        borderWidth: 1, borderColor: COLORS.border,
+        borderRadius: 12, padding: 14,
+        fontSize: 15, color: COLORS.textPrimary,
+        minHeight: 100, marginBottom: 20,
+    },
     
-    inputGroup: { marginBottom: 20 },
-    label: { fontSize: 13, fontWeight: '700', color: '#475569', marginBottom: 8 },
-    input: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 14, fontSize: 15, color: '#1e293b' },
-    textArea: { height: 120 },
-    
-    dateTimeRow: { flexDirection: 'row', gap: 12 },
-    dateTimeBtn: { flex: 1, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 14, alignItems: 'center' },
-    dateTimeText: { fontSize: 15, color: '#1e293b', fontWeight: '500' },
-    
-    submitBtn: { backgroundColor: '#ef4444', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, ...SHADOWS.medium },
-    submitBtnDisabled: { opacity: 0.7 },
-    submitBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '700' }
+    alertBox: {
+        backgroundColor: '#fffbeb',
+        borderLeftWidth: 4, borderLeftColor: COLORS.warning,
+        padding: 14, borderRadius: 6, marginBottom: 20,
+    },
+    alertText: { color: '#b45309', fontSize: 13, lineHeight: 18 },
+
+    applyBtn: {
+        backgroundColor: COLORS.danger,
+        borderRadius: 12, paddingVertical: 16,
+        alignItems: 'center', justifyContent: 'center',
+        ...SHADOWS.medium,
+    },
+    applyBtnText: { color: COLORS.white, fontSize: 15, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
 });
 
 export default WardenEmergencyOutpassScreen;

@@ -19,7 +19,10 @@ const WatchmanDashboardScreen = () => {
         try {
             const res = await api.get('/watchman/profile');
             setWatchman(res.data.watchman || res.data);
-        } catch { Toast.show({ type: 'error', text1: 'Failed to fetch profile' }); }
+        } catch (err: any) {
+            console.error('[WatchmanDashboard] fetchProfile error:', err?.response?.status, err?.response?.data);
+            Toast.show({ type: 'error', text1: 'Failed to fetch profile', text2: err?.response?.data?.message || 'Server error' });
+        }
         finally { setLoading(false); }
     };
 
@@ -53,7 +56,7 @@ const WatchmanDashboardScreen = () => {
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
                     <View style={styles.grid}>
                         {[
-                            { emoji: '✅', label: 'Outpass List', route: 'WatchmanOutpassList' },
+                            { emoji: '✅', label: 'Outpass List', route: 'WatchmanHistory' },
                         ].map((a) => (
                             <TouchableOpacity key={a.route} style={styles.card} onPress={() => navigation.navigate(a.route)}>
                                 <View style={styles.cardIconContainer}>

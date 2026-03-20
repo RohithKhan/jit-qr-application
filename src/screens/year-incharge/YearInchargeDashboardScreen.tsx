@@ -23,36 +23,10 @@ const YearInchargeDashboardScreen = () => {
 
     const fetchDashboardData = async () => {
         try {
-            const [profileRes, outpassRes] = await Promise.all([
-                api.get('/incharge/profile'),
-                api.get('/incharge/outpass/list')
-            ]);
-
-            const userData = profileRes.data.yearincharge || profileRes.data.user || profileRes.data;
-            setUser(userData);
-
-            const outpasses = outpassRes.data.outpasses || outpassRes.data.outpasslist || [];
-            const pending = outpasses.filter((o: any) =>
-                (o.staffapprovalstatus || '').toLowerCase() === 'approved' &&
-                (o.yearinchargeapprovalstatus || '').toLowerCase() === 'pending'
-            ).length;
-
-            const approved = outpasses.filter((o: any) => (o.yearinchargeapprovalstatus || '').toLowerCase() === 'approved').length;
-            const rejected = outpasses.filter((o: any) => (o.yearinchargeapprovalstatus || '').toLowerCase() === 'rejected').length;
-
-            setStats({
-                total: outpasses.length,
-                pending,
-                approved,
-                rejected
-            });
-        } catch (error: any) {
-            console.error("Dashboard fetch error:", error);
-            Toast.show({ type: 'error', text1: 'Failed to fetch dashboard data' });
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+            const res = await api.get('/incharge/profile');
+            setUser(res.data.yearIncharge || res.data);
+        } catch { Toast.show({ type: 'error', text1: 'Failed to fetch profile' }); }
+        finally { setLoading(false); }
     };
 
     useFocusEffect(
@@ -61,10 +35,11 @@ const YearInchargeDashboardScreen = () => {
         }, [])
     );
 
-    const onRefresh = () => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        fetchDashboardData();
-    };
+        await fetchDashboardData();
+        setRefreshing(false);
+    }, []);
 
     const handleLogout = handleGlobalLogout;
 
@@ -101,7 +76,7 @@ const YearInchargeDashboardScreen = () => {
                             <Text style={styles.name}>Hello, {user?.name || 'Incharge'}! 👋</Text>
                             <Text style={styles.sub}>Year Incharge • {user?.department || 'Administration'}</Text>
                         </View>
-                        <TouchableOpacity onPress={() => navigation.navigate('YearInchargeProfile')}>
+                        <TouchableOpacity onPress={() => navigation.navigate('YIProfileTab')}>
                             <Image source={{ uri: getPhoto() }} style={styles.avatar} />
                         </TouchableOpacity>
                     </View>
@@ -123,15 +98,15 @@ const YearInchargeDashboardScreen = () => {
                         <ActionCard 
                             emoji="⏳" 
                             label="Pending Outpass" 
-                            route="YIPendingOutpass" 
-                            onPress={() => navigation.navigate('YIPendingOutpass')}
+                            route="YIPending" 
+                            onPress={() => navigation.navigate('YIPending')}
                             count={stats.pending}
                         />
                         <ActionCard 
                             emoji="✅" 
                             label="Outpass List" 
-                            route="YIOutpassList" 
-                            onPress={() => navigation.navigate('YIOutpassList')}
+                            route="YIHistory" 
+                            onPress={() => navigation.navigate('YIHistory')}
                         />
                         <ActionCard 
                             emoji="👥" 
@@ -142,8 +117,8 @@ const YearInchargeDashboardScreen = () => {
                         <ActionCard 
                             emoji="👤" 
                             label="My Profile" 
-                            route="YearInchargeProfile" 
-                            onPress={() => navigation.navigate('YearInchargeProfile')}
+                            route="YIProfileTab" 
+                            onPress={() => navigation.navigate('YIProfileTab')}
                         />
                     </View>
 
